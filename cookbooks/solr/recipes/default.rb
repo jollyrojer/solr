@@ -4,7 +4,6 @@
 #
 
 require "pathname"
-include_recipe "zookeeper-component"
 include_recipe "tomcat"
 
 # Since solr 4.3.0 we need slf4j jar http://wiki.apache.org/solr/SolrLogging#Solr_4.3_and_above
@@ -53,8 +52,8 @@ template "#{node["solr"]["path"]}/webapps/solr.xml" do
 end
 
 execute "link solr app" do
-  command "ln -s #{node["solr"]["path"]}/webapps/solr.xml #{node["tomcat"]["config_dir"]}/Catalina/localhost/solr.xml"
-  creates "#{node["tomcat"]["config_dir"]}/Catalina/localhost/solr.xml"  
+  command "ln -s #{node["solr"]["path"]}/webapps/solr.xml #{node["tomcat"]["context_dir"]}/solr.xml"
+  creates "#{node["tomcat"]["context_dir"]}/solr.xml"
 end
 
 #Create collections
@@ -99,6 +98,31 @@ end
 execute "ln home" do
   command "ln -s #{node["solr"]["path"]} #{node["tomcat"]["base"]}/solr"
   creates "#{node["tomcat"]["base_dir"]}/solr"
+end
+
+#create zkcli
+template "#{node["solr"]["path"]}/webapps/zkcli.sh" do
+  owner node["tomcat"]["user"]
+  group node["tomcat"]["group"]
+  mode 00755
+  source "zkcli.sh.erb"
+end
+
+#populate zookeeper
+zoo_connect = "#{node["solr"]["zookeeper"]["host"]}:#{node["solr"]["zookeeper"]["port"]}"
+solr_cores = "#{node["solr"]["path"]}/cores"
+node["solr"]["collection"].each do |collection|
+  execute "upload zoo collection #{collection}" do
+    command "#{node["solr"]["path"]}/webapps/zkcli.sh -cmd upconfig -zkhost #{zoo_connect} -d #{solr_cores}/#{collection}/conf/ -n #{collection}"
+  end
+
+  execute "link zoo collection #{collection}" do
+    command "#{node["solr"]["path"]}/webapps/zkcli.sh -cmd linkconfig -zkhost #{zoo_connect} -collection #{collection} -confname #{collection} -solrhome #{solr_cores}"
+  end
+
+  execute "bootstrap zoo collection #{collection}" do
+    command "#{node["solr"]["path"]}/webapps/zkcli.sh -cmd bootstrap -zkhost #{zoo_connect} -solrhome #{solr_cores}"
+  end
 end
 
 execute "change solr owner" do

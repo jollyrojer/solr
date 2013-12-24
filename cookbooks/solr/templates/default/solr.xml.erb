@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <solr persistent="true" sharedLib="lib" zkHost="<%= @zooip %>:<%= @zooport %>">
-  <cores adminPath="/admin/cores" host="${host:}" hostPort="8080">
+  <cores adminPath="/admin/cores" host="${host:}" hostPort="8080" hostContext="${hostContext:}" zkClientTimeout="${zkClientTimeout:15000}">
      <core name="one" instanceDir="one" />
      <core name="two" instanceDir="two" />
   </cores>
