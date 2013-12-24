@@ -7,15 +7,6 @@
 [submodule "cookbooks/java"]
 	path = cookbooks/java
 	url = https://github.com/socrata/java.git
-[submodule "cookbooks/ark"]
-	path = cookbooks/ark
-	url = https://github.com/opscode-cookbooks/ark.git
-[submodule "cookbooks/application"]
-	path = cookbooks/application
-	url = https://github.com/poise/application.git
-[submodule "cookbooks/application_java"]
-	path = cookbooks/application_java
-	url = https://github.com/poise/application_java.git
 [submodule "cookbooks/zookeeper"]
 	path = cookbooks/zookeeper
 	url = https://github.com/SimpleFinance/chef-zookeeper.git
