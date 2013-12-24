@@ -7,14 +7,22 @@ require "pathname"
 include_recipe "tomcat"
 
 # Since solr 4.3.0 we need slf4j jar http://wiki.apache.org/solr/SolrLogging#Solr_4.3_and_above
-# # TODO use an external cookbook
+slf4j_url = "#{node["solr"]["slf4j"]["url"]}/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz"
+remote_file "/tmp/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz" do
+  source slf4j_url
+  action :create_if_missing
+end
+
+execute "extract slf4j" do
+  command "tar -xzvf /tmp/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz -C /tmp"
+  creates "/tmp/slf4j-#{node["solr"]["slf4j"]["version"]}"
+end
+
 ["slf4j-jdk14-#{node["solr"]["slf4j"]["version"]}.jar", "log4j-over-slf4j-#{node["solr"]["slf4j"]["version"]}.jar", "slf4j-api-#{node["solr"]["slf4j"]["version"]}.jar", "jcl-over-slf4j-#{node["solr"]["slf4j"]["version"]}.jar"].each do |file|
-  ark file do
-    url "#{node["solr"]["slf4j"]["url"]}/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz"
-      action :cherry_pick
-      creates ::File.join("slf4j-#{node["solr"]["slf4j"]["version"]}", file)
-      path ::File.join(node["tomcat"]["home"],"lib")
-    end
+  execute "copy #{file} to tomcat" do
+    command "cp /tmp/slf4j-#{node["solr"]["slf4j"]["version"]}/#{file} #{node["tomcat"]["lib_dir"]}/"
+    creates "#{node["tomcat"]["lib_dir"]}/#{file}"
+  end
 end
 
 # Extract war file from solr archive
