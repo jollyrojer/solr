@@ -5,7 +5,7 @@
 
 require "pathname"
 include_recipe "tomcat"
-include_recipe "zookeeper-component"
+#include_recipe "zookeeper-component"
 
 # Since solr 4.3.0 we need slf4j jar http://wiki.apache.org/solr/SolrLogging#Solr_4.3_and_above
 slf4j_url = "#{node["solr"]["slf4j"]["url"]}/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz"
@@ -63,6 +63,16 @@ end
 execute "link solr app" do
   command "ln -s #{node["solr"]["path"]}/webapps/solr.xml #{node["tomcat"]["context_dir"]}/solr.xml"
   creates "#{node["tomcat"]["context_dir"]}/solr.xml"
+end
+
+execute "extract solr_war" do
+  command "unzip -o /opt/solr/webapps/solr.war -d /usr/share/tomcat6/webapps/solr"
+  action :run
+end
+
+execute "restart tomcat" do
+  command "/etc/init.d/tomcat6 restart"
+  action :run
 end
 
 #Create collections
