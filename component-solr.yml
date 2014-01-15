@@ -83,7 +83,7 @@ application:
                     roleName: default
                     hardwareId: ""
                     vmIdentity: ubunutu
-                    retryCount: 1
+                    retryCount: 0
                     staticIps: "{$.props.nodes.app-hosts}"
               - deploy-solr:
                   action: "chefrun"
