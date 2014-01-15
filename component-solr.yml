@@ -82,7 +82,7 @@ application:
                   parameters:
                     roleName: default
                     hardwareId: ""
-                    vmIdentity: ubunutu
+                    vmIdentity: ubuntu
                     retryCount: 0
                     staticIps: "{$.props.nodes.app-hosts}"
               - deploy-solr:

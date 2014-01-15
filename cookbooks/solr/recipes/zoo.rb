@@ -2,6 +2,9 @@
 # Cookbook Name:: solr-component
 # Recipe:: zoo
 #
+package "unzip" do
+  action :install
+end
 
 execute "extract solr_war" do
   command "unzip -o #{node["solr"]["path"]}/webapps/solr.war -d /tmp/solr_war"

@@ -4,11 +4,6 @@
 #
 
 require "pathname"
-include_recipe "tomcat"
-
-package "unzip" do
-  action :install
-end
 
 # Since solr 4.3.0 we need slf4j jar http://wiki.apache.org/solr/SolrLogging#Solr_4.3_and_above
 slf4j_url = "#{node["solr"]["slf4j"]["url"]}/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz"
