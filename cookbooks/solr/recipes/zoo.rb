@@ -1,3 +1,12 @@
+#
+# Cookbook Name:: solr-component
+# Recipe:: zoo
+#
+
+execute "extract solr_war" do
+  command "unzip -o #{node["solr"]["path"]}/webapps/solr.war -d /tmp/solr_war"
+  action :run
+end
 
 #create zkcli
 template "#{node["solr"]["path"]}/webapps/zkcli.sh" do
@@ -6,7 +15,7 @@ template "#{node["solr"]["path"]}/webapps/zkcli.sh" do
   mode 00755
   source "zkcli.sh.erb"
   variables({
-    :solr_src => "/opt/solr-#{node["solr"]["version"]}/example/cloud-scripts"
+    :solr_src => "/tmp/solr-#{node["solr"]["version"]}/example/cloud-scripts"
   })
 end
 
@@ -26,4 +35,5 @@ node["solr"]["collection"].each do |collection|
     command "sudo #{node["solr"]["path"]}/webapps/zkcli.sh -cmd bootstrap -zkhost #{zoo_connect} -solrhome #{solr_cores}"
   end
 end
+
 
