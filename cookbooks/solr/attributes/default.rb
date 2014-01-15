@@ -6,6 +6,7 @@ default["solr"]["slf4j"]["version"] = "1.6.6"
 default["solr"]["collection"] = ["one","two"]
 default["solr"]["zookeeper"]["host"] = ""
 default["solr"]["zookeeper"]["port"] = "2181"
+default["tomcat"]["base_version"] = 6
 case node['platform']
 when "centos","redhat","fedora"
   default["tomcat"]["user"] = "tomcat"

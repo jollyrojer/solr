@@ -1,0 +1,139 @@
+application:
+  configuration:
+    input.solr-collections: ["collection1","collection2"]
+
+  interfaces:
+    input:
+      solr-collections: "bind(solr#input.solr-collections)"
+    endpoints:
+      solr-node: "bind(solr#result.solr-node)"
+      solr-url: "bind(solr#result.solr-url)"
+    nodes:
+      app-hosts: "bind(tomcat#output.app-hosts)"
+
+  components:
+    wfService:
+      type: reference.Service
+      interfaces:
+        executor:
+          execute-workflow: receive-command(object request => object status => object status)
+          execute-command: send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
+
+    secureStore:
+      type: reference.Service
+      interfaces:
+        keypair-store:
+          get-keypair: receive-command(string id => object privateKey)
+
+    tomcat:
+      type: reference.Submodule
+      configuration:
+        __locator.application-id: "tomcat"
+      interfaces:
+        input:
+          quantity: configuration(string)
+        management:
+          deploy-libs: receive-command(list<string> lib-uri)
+          deploy-war: receive-command(string war-uri, object environments, object resources)
+        output:
+          app-hosts: publish-signal(list<string>)
+          app-port: publish-signal(string)
+
+    solr:
+      type: workflow.Instance
+      interfaces:
+        input:
+          solr-collections: configuration(list<string>)
+          #constants
+          lib-uri: configuration(list<string>)
+          war-uri: configuration(string)
+        nodes:
+          app-hosts: consume-signal(list<string>)
+        tomcat-actions:
+          deploy-libs: send-command(list<string> lib-uri)
+          deploy-war: send-command(string war-uri, object environments, object resources)
+        keypair-store:
+          get-keypair: send-command(string id => object privateKey)
+        result:
+          solr-url: publish-signal(string)
+          solr-node: publish-signal(list<string>)
+
+      required: [keypair-store, nodes]
+
+      configuration:
+        input.lib-uri: ["file:///tmp/slf4j-1.6.6/slf4j-jdk14-1.6.6.jar", "file:///tmp/slf4j-1.6.6/log4j-over-slf4j-1.6.6.jar", "file:///tmp/slf4j-1.6.6/slf4j-api-1.6.6.jar", "file:///tmp/slf4j-1.6.6/jcl-over-slf4j-1.6.6.jar"]
+        input.war-uri: "file:///opt/solr/webapps/solr.war"
+        configuration.triggers: {}
+        configuration.workflows:
+          launch:
+            parameters:
+              - solr-collections:
+                  description: solr collection names to create
+            steps:
+              - get-env-props:
+                  action: getEnvironmentProperties
+                  phase: get-env-props
+                  output:
+                    props: result
+              - provision-node:
+                  action: provisionVms
+                  phase: provision-node
+                  precedingPhases: [ get-env-props ]
+                  parameters:
+                    roleName: default
+                    hardwareId: ""
+                    vmIdentity: ubunutu
+                    retryCount: 1
+                    staticIps: "{$.props.nodes.app-hosts}"
+              - deploy-solr:
+                  action: "chefrun"
+                  phase: deploy-solr
+                  precedingPhases: [ provision-node ]
+                  parameters:
+                    isSolo: true
+                    roles: [ default ]
+                    runList: [ "recipe[solr]" ]
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr.tar.gz"
+                    jattrs:
+                      solr:
+                        collection: "{$.solr-collections}"
+              - deploy-libs:
+                  action: serviceCall
+                  phase: deploy-libs
+                  precedingPhases: [ deploy-solr ]
+                  parameters:
+                    timeout: 600
+                    service: tomcat-actions
+                    command: deploy-libs
+                    arguments:
+                      lib-uri: "{$.lib-uri}"
+              - deploy-war:
+                  action: serviceCall
+                  phase: deploy-war
+                  precedingPhases: [ deploy-libs ]
+                  parameters:
+                    timeout: 600
+                    service: tomcat-actions
+                    command: deploy-war
+                    arguments:
+                      war-uri: "{$.war-uri}"
+                      resources: {}
+                      environments: {
+                        "solr/home": {
+                          "type": "java.lang.String",
+                          "value": "/opt/solr/cores",
+                          "override": "true"
+                        }
+                      }
+            return:
+              solr-node:
+                value: "{$.props.nodes.app-hosts}"
+              solr-url:
+                value: "http://{$.props.nodes.app-hosts}:{$.props.nodes.app-port}/solr"
+
+          destroy:
+            steps: []
+  bindings:
+    - [solr, wfService]
+    - [solr, secureStore]
+    - [solr, tomcat]
