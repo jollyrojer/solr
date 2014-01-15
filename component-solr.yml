@@ -10,6 +10,7 @@ application:
       solr-url: "bind(solr#result.solr-url)"
     nodes:
       app-hosts: "bind(tomcat#output.app-hosts)"
+      app-port: "bind(tomcat#output.app-port)"
 
   components:
     wfService:
@@ -49,6 +50,7 @@ application:
           war-uri: configuration(string)
         nodes:
           app-hosts: consume-signal(list<string>)
+          app-port: consume-signal(string)
         tomcat-actions:
           deploy-libs: send-command(list<string> lib-uri)
           deploy-war: send-command(string war-uri, object environments, object resources)
