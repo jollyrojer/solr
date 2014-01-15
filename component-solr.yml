@@ -57,7 +57,7 @@ application:
         keypair-store:
           get-keypair: send-command(string id => object privateKey)
         result:
-          solr-url: publish-signal(string)
+          solr-url: publish-signal(list<string>)
           solr-node: publish-signal(list<string>)
 
       required: [keypair-store, nodes]
