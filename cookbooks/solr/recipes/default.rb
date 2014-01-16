@@ -51,59 +51,57 @@ end
 if ( node["solr"]["collection"][0].start_with?('http:','https:','ftp:','file:'))
   #if collection uri
   require 'uri'
-  collection_uri = node['solr']['collection']
-  collection_uri[0].each do |collection|
-    uri = URI.parse(collection)
-    file_name = File.basename(uri.path)
-    ext_name = File.extname(file_name)
-    target_file = "/tmp/#{file_name}"
+  collection = node['solr']['collection'][0]
+  uri = URI.parse(collection)
+  file_name = File.basename(uri.path)
+  ext_name = File.extname(file_name)
+  target_file = "/tmp/#{file_name}"
 
-    #check is extention zip|tar.gz
-    if ( ! %w{.zip .gz }.include?(ext_name))
-      fail "not supported"
+  #check is extention zip|tar.gz
+  if ( ! %w{.zip .gz }.include?(ext_name))
+    fail "not supported"
+  end
+  #download to target_file
+  if ( collection.start_with?('http','ftp'))
+    remote_file "#{target_file}" do
+      source collection
     end
-    #download to target_file
-    if ( collection.start_with?('http','ftp'))
-      remote_file "#{target_file}" do
-        source collection
-      end
-    elsif ( collection.start_with?('file'))
-      target_file = URI.parse(collection).path
-    end
+  elsif ( collection.start_with?('file'))
+    target_file = URI.parse(collection).path
+  end
 
-    file_name = File.basename(target_file)
+  file_name = File.basename(target_file)
     
-    #create solr/cores dir
-    directory "#{node["solr"]["path"]}/cores" do
-      owner "#{node["tomcat"]["user"]}"
-      group "#{node["tomcat"]["user"]}"
-      mode "00755"
-      action :create
-    end
+  #create solr/cores dir
+  directory "#{node["solr"]["path"]}/cores" do
+    owner "#{node["tomcat"]["user"]}"
+    group "#{node["tomcat"]["user"]}"
+    mode "00755"
+    action :create
+  end
 
-    #extract collection archive
-    case ext_name
-    when ".gz"
-      bash "unpack collection #{target_file}" do
-        user "root"
-        code <<-EOH
-        tar -xzvf #{target_file} -C #{node["solr"]["path"]}/cores/
-        chown -R #{node["tomcat"]["user"]}:#{node["tomcat"]["user"]} #{node["solr"]["path"]}/cores
-        chmod -R 755 #{node["solr"]["path"]}/cores
-        EOH
-      end
-    when ".zip"
-      package "zip" do
-        action :install
-      end
-      bash "unpack collection #{target_file}" do
-        user "root"
-        code <<-EOH
-        unzip -o #{target_file} -d #{node["solr"]["path"]}/cores/
-        chown -R #{node["tomcat"]["user"]}:#{node["tomcat"]["user"]} #{node["solr"]["path"]}/cores
-        chmod -R 755 #{node["solr"]["path"]}/cores
-        EOH
-      end
+  #extract collection archive
+  case ext_name
+  when ".gz"
+    bash "unpack collection #{target_file}" do
+      user "root"
+      code <<-EOH
+      tar -xzvf #{target_file} -C #{node["solr"]["path"]}/cores/
+      chown -R #{node["tomcat"]["user"]}:#{node["tomcat"]["user"]} #{node["solr"]["path"]}/cores
+      chmod -R 755 #{node["solr"]["path"]}/cores
+      EOH
+    end
+  when ".zip"
+    package "zip" do
+      action :install
+    end
+    bash "unpack collection #{target_file}" do
+      user "root"
+      code <<-EOH
+       unzip -o #{target_file} -d #{node["solr"]["path"]}/cores/
+      chown -R #{node["tomcat"]["user"]}:#{node["tomcat"]["user"]} #{node["solr"]["path"]}/cores
+      chmod -R 755 #{node["solr"]["path"]}/cores
+      EOH
     end
   end
 else
@@ -153,7 +151,7 @@ if ( ! node["solr"]["zookeeper"]["host"].empty? )
 end
 
 execute "ln home" do
-  command "ln -s #{node["solr"]["path"]} #{node["tomcat"]["base"]}/solr"
+  command "ln -sf #{node["solr"]["path"]} #{node["tomcat"]["base"]}/solr"
 end
 
 execute "change solr owner" do
