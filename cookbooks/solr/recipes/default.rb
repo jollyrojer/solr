@@ -52,7 +52,7 @@ if ( node["solr"]["collection"][0].start_with?('http:','https:','ftp:','file:'))
   #if collection uri
   require 'uri'
   collection_uri = node['solr']['collection']
-  collection_uri.each do |collection|
+  collection_uri[0].each do |collection|
     uri = URI.parse(collection)
     file_name = File.basename(uri.path)
     ext_name = File.extname(file_name)
