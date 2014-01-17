@@ -155,5 +155,5 @@ execute "ln home" do
 end
 
 execute "change solr owner" do
-  command "sudo chown -R #{node["tomcat"]["user"]}:#{node["tomcat"]["group"]} #{node["solr"]["path"]}"
+  command "chown -R #{node["tomcat"]["user"]}:#{node["tomcat"]["group"]} #{node["solr"]["path"]}"
 end
