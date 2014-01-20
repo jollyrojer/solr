@@ -117,7 +117,7 @@ application:
                       solr:
                         collection: "{$.solr-collections}"
                         zookeeper:
-                          host: "{$.app-hosts[0]}"
+                          host: "{$.props.nodes.app-hosts[0]}"
               - deploy-libs:
                   action: serviceCall
                   phase: deploy-libs
