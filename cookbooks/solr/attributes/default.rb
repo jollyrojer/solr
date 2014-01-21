@@ -1,4 +1,5 @@
-default["solr"]["url"] = "http://apache.mesi.com.ar/lucene/solr/"
+#default["solr"]["url"] = "http://apache.mesi.com.ar/lucene/solr/"
+default["solr"]["url"] = "http://archive.apache.org/dist/lucene/solr/"
 default["solr"]["version"] = "4.6.0"
 default["solr"]["path"] = "/opt/solr"
 default["solr"]["slf4j"]["url"] = "http://www.slf4j.org/dist"

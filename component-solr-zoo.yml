@@ -1,10 +1,16 @@
 application:
   configuration:
+    input.solr-version: "4.6.0"
     input.solr-collections: ["collection1","collection2"]
+    input.app-port: "8080"
+    input.exhibitor-port: "8090"
 
   interfaces:
     input:
+      solr-version: "bind(solr#input.solr-version)"
       solr-collections: "bind(solr#input.solr-collections)"
+      app-port: "bind(tomcat#input.app-port)"
+      exhibitor-port: "bind(solr#input.exhibitor-port)"
     endpoints:
       zoo-ui: "bind(solr#result.zoo-ui)"
       solr-node: "bind(solr#result.solr-node)"
@@ -33,6 +39,7 @@ application:
         __locator.application-id: "tomcat"
       interfaces:
         input:
+          app-port: configuration(string)
           quantity: configuration(string)
         management:
           deploy-libs: receive-command(list<string> lib-uri)
@@ -45,9 +52,10 @@ application:
       type: workflow.Instance
       interfaces:
         input:
+          solr-version: configuration(string)
           solr-collections: configuration(list<string>)
-          #constants
           exhibitor-port: configuration(string)
+          #constants
           lib-uri: configuration(list<string>)
           war-uri: configuration(string)
         nodes:
@@ -68,13 +76,16 @@ application:
       configuration:
         input.lib-uri: ["file:///tmp/slf4j-1.6.6/slf4j-jdk14-1.6.6.jar", "file:///tmp/slf4j-1.6.6/log4j-over-slf4j-1.6.6.jar", "file:///tmp/slf4j-1.6.6/slf4j-api-1.6.6.jar", "file:///tmp/slf4j-1.6.6/jcl-over-slf4j-1.6.6.jar"]
         input.war-uri: "file:///opt/solr/webapps/solr.war"
-        input.exhibitor-port: "8090"
         configuration.triggers: {}
         configuration.workflows:
           launch:
             parameters:
+              - solr-version:
+                  description: Solr version
               - solr-collections:
-                  description: solr collection names to create
+                  description: Solr collection names to create
+              - exhibitor-port:
+                  description: Zookeeper exhibitor port
             steps:
               - get-env-props:
                   action: getEnvironmentProperties
@@ -115,6 +126,7 @@ application:
                     recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr.tar.gz"
                     jattrs:
                       solr:
+                        version: "{$.solr-version}"
                         collection: "{$.solr-collections}"
                         zookeeper:
                           host: "{$.props.nodes.app-hosts[0]}"

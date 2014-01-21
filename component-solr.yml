@@ -1,10 +1,14 @@
 application:
   configuration:
+    input.solr-version: "4.6.0"
     input.solr-collections: ["collection1","collection2"]
+    input.app-port: "8080"
 
   interfaces:
     input:
+      solr-version: "bind(solr#input.solr-version)"
       solr-collections: "bind(solr#input.solr-collections)"
+      app-port: "bind(tomcat#input.app-port)"
     endpoints:
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"
@@ -32,6 +36,7 @@ application:
         __locator.application-id: "tomcat"
       interfaces:
         input:
+          app-port: configuration(string)
           quantity: configuration(string)
         management:
           deploy-libs: receive-command(list<string> lib-uri)
@@ -44,6 +49,7 @@ application:
       type: workflow.Instance
       interfaces:
         input:
+          solr-version: configuration(string)
           solr-collections: configuration(list<string>)
           #constants
           lib-uri: configuration(list<string>)
@@ -69,6 +75,8 @@ application:
         configuration.workflows:
           launch:
             parameters:
+              - solr-version:
+                  description: Solr version
               - solr-collections:
                   description: solr collection names to create
             steps:
@@ -98,6 +106,7 @@ application:
                     recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr.tar.gz"
                     jattrs:
                       solr:
+                        version: "{$.solr-version}"
                         collection: "{$.solr-collections}"
               - deploy-libs:
                   action: serviceCall
