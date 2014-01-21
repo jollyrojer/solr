@@ -40,7 +40,7 @@ application:
           quantity: configuration(string)
         management:
           deploy-libs: receive-command(list<string> lib-uri)
-          deploy-war: receive-command(string war-uri, object environments, object resources)
+          deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
         output:
           app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
@@ -59,7 +59,7 @@ application:
           app-port: consume-signal(string)
         tomcat-actions:
           deploy-libs: send-command(list<string> lib-uri)
-          deploy-war: send-command(string war-uri, object environments, object resources)
+          deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
         keypair-store:
           get-keypair: send-command(string id => object privateKey)
         result:
@@ -128,14 +128,20 @@ application:
                     command: deploy-war
                     arguments:
                       war-uri: "{$.war-uri}"
-                      resources: {}
-                      environments: {
-                        "solr/home": {
-                          "type": "java.lang.String",
-                          "value": "/opt/solr/cores",
-                          "override": "true"
-                        }
+                      context-attrs: {
+                        "docBase": "{$.war-uri}",
+                        "debug": "5",
+                        "crossContext": "true",
+                        "privileged": "true",
+                        "allowLinking": "true"
                       }
+                      context-nodes:
+                        - Environment: {
+                            "name": "solr/home",
+                            "type": "java.lang.String",
+                            "value": "/opt/solr/cores",
+                            "override": "true"
+                          }
             return:
               solr-node:
                 value: "{$.props.nodes.app-hosts}"
