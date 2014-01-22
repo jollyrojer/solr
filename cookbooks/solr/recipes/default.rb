@@ -13,12 +13,16 @@ remote_file "/tmp/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz" do
 end
 
 # Extract required libs
+libs = []
 ["slf4j-jdk14-#{node["solr"]["slf4j"]["version"]}.jar", "log4j-over-slf4j-#{node["solr"]["slf4j"]["version"]}.jar", "slf4j-api-#{node["solr"]["slf4j"]["version"]}.jar", "jcl-over-slf4j-#{node["solr"]["slf4j"]["version"]}.jar"].each do |file|
   execute "extract #{file}" do
     command "tar -xzvf /tmp/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz -C /tmp/ slf4j-#{node["solr"]["slf4j"]["version"]}/#{file}"
     creates "/tmp/slf4j-#{node["solr"]["slf4j"]["version"]}/#{file}"
   end
+libs << "file:///tmp/slf4j-#{node["solr"]["slf4j"]["version"]}/#{file}"
 end
+node.set["solr"]["lib_uri"] = libs
+
 
 # Extract war file from solr archive
 solr_url = "#{node["solr"]["url"]}#{node["solr"]["version"]}/solr-#{node["solr"]["version"]}.tgz"
@@ -46,6 +50,8 @@ execute "copy sorl.war" do
   command "cp /tmp/solr-#{node["solr"]["version"]}/dist/solr-#{node["solr"]["version"]}.war #{node["solr"]["path"]}/webapps/solr.war"
   creates "#{node["solr"]["path"]}/webapps/solr.war"
 end
+
+node.set["solr"]["war_uri"] = "#{node["solr"]["path"]}/webapps/solr.war"
 
 #Populate collections
 if ( node["solr"]["collection"][0].start_with?('http:','https:','ftp:','file:'))

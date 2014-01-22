@@ -2,6 +2,7 @@ application:
   configuration:
     input.solr-version: "4.6.0"
     input.solr-collections: ["collection1","collection2"]
+    input.solr-debug: "5"
     input.app-port: "8080"
     input.exhibitor-port: "8090"
 
@@ -9,6 +10,7 @@ application:
     input:
       solr-version: "bind(solr#input.solr-version)"
       solr-collections: "bind(solr#input.solr-collections)"
+      solr-debug: "bind(solr#input.solr-debug)"
       app-port: "bind(tomcat#input.app-port)"
       exhibitor-port: "bind(solr#input.exhibitor-port)"
     endpoints:
@@ -54,10 +56,11 @@ application:
         input:
           solr-version: configuration(string)
           solr-collections: configuration(list<string>)
+          solr-debug: configuration(string)
           exhibitor-port: configuration(string)
           #constants
-          lib-uri: configuration(list<string>)
-          war-uri: configuration(string)
+          #lib-uri: configuration(list<string>)
+          #war-uri: configuration(string)
         nodes:
           app-hosts: consume-signal(list<string>)
           app-port: consume-signal(string)
@@ -74,8 +77,8 @@ application:
       required: [keypair-store, nodes]
 
       configuration:
-        input.lib-uri: ["file:///tmp/slf4j-1.6.6/slf4j-jdk14-1.6.6.jar", "file:///tmp/slf4j-1.6.6/log4j-over-slf4j-1.6.6.jar", "file:///tmp/slf4j-1.6.6/slf4j-api-1.6.6.jar", "file:///tmp/slf4j-1.6.6/jcl-over-slf4j-1.6.6.jar"]
-        input.war-uri: "file:///opt/solr/webapps/solr.war"
+        #input.lib-uri: ["file:///tmp/slf4j-1.6.6/slf4j-jdk14-1.6.6.jar", "file:///tmp/slf4j-1.6.6/log4j-over-slf4j-1.6.6.jar", "file:///tmp/slf4j-1.6.6/slf4j-api-1.6.6.jar", "file:///tmp/slf4j-1.6.6/jcl-over-slf4j-1.6.6.jar"]
+        #input.war-uri: "file:///opt/solr/webapps/solr.war"
         configuration.triggers: {}
         configuration.workflows:
           launch:
@@ -84,6 +87,8 @@ application:
                   description: Solr version
               - solr-collections:
                   description: Solr collection names to create
+              - solr-debug:
+                  description: Debug level
               - exhibitor-port:
                   description: Zookeeper exhibitor port
             steps:
@@ -130,6 +135,9 @@ application:
                         collection: "{$.solr-collections}"
                         zookeeper:
                           host: "{$.props.nodes.app-hosts[0]}"
+                  output:
+                    chefAttrs: chefState
+
               - deploy-libs:
                   action: serviceCall
                   phase: deploy-libs
@@ -139,7 +147,7 @@ application:
                     service: tomcat-actions
                     command: deploy-libs
                     arguments:
-                      lib-uri: "{$.lib-uri}"
+                      lib-uri: "{$.chefAttrs['*'][0]['solr']['lib_uri']}"
               - deploy-war:
                   action: serviceCall
                   phase: deploy-war
@@ -149,10 +157,10 @@ application:
                     service: tomcat-actions
                     command: deploy-war
                     arguments:
-                      war-uri: "{$.war-uri}"
+                      war-uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
                       context-attrs: {
-                        "docBase": "{$.war-uri}",
-                        "debug": "5",
+                        "docBase": "{$.chefAttrs['*'][0]['solr']['war_uri']}",
+                        "debug": "{$.solr-debug}",
                         "crossContext": "true",
                         "privileged": "true",
                         "allowLinking": "true"

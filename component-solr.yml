@@ -2,12 +2,14 @@ application:
   configuration:
     input.solr-version: "4.6.0"
     input.solr-collections: ["collection1","collection2"]
+    input.solr-debug: "5"
     input.app-port: "8080"
 
   interfaces:
     input:
       solr-version: "bind(solr#input.solr-version)"
       solr-collections: "bind(solr#input.solr-collections)"
+      solr-debug: "bind(solr#input.solr-debug)"
       app-port: "bind(tomcat#input.app-port)"
     endpoints:
       solr-node: "bind(solr#result.solr-node)"
@@ -51,9 +53,7 @@ application:
         input:
           solr-version: configuration(string)
           solr-collections: configuration(list<string>)
-          #constants
-          lib-uri: configuration(list<string>)
-          war-uri: configuration(string)
+          solr-debug: configuration(string)
         nodes:
           app-hosts: consume-signal(list<string>)
           app-port: consume-signal(string)
@@ -69,8 +69,6 @@ application:
       required: [keypair-store, nodes]
 
       configuration:
-        input.lib-uri: ["file:///tmp/slf4j-1.6.6/slf4j-jdk14-1.6.6.jar", "file:///tmp/slf4j-1.6.6/log4j-over-slf4j-1.6.6.jar", "file:///tmp/slf4j-1.6.6/slf4j-api-1.6.6.jar", "file:///tmp/slf4j-1.6.6/jcl-over-slf4j-1.6.6.jar"]
-        input.war-uri: "file:///opt/solr/webapps/solr.war"
         configuration.triggers: {}
         configuration.workflows:
           launch:
@@ -79,6 +77,8 @@ application:
                   description: Solr version
               - solr-collections:
                   description: solr collection names to create
+              - solr-debug:
+                  description: Debug level
             steps:
               - get-env-props:
                   action: getEnvironmentProperties
@@ -108,6 +108,8 @@ application:
                       solr:
                         version: "{$.solr-version}"
                         collection: "{$.solr-collections}"
+                  output:
+                    chefAttrs: chefState
               - deploy-libs:
                   action: serviceCall
                   phase: deploy-libs
@@ -117,7 +119,7 @@ application:
                     service: tomcat-actions
                     command: deploy-libs
                     arguments:
-                      lib-uri: "{$.lib-uri}"
+                      lib-uri: "{$.chefAttrs['*'][0]['solr']['lib_uri']}"
               - deploy-war:
                   action: serviceCall
                   phase: deploy-war
@@ -127,10 +129,10 @@ application:
                     service: tomcat-actions
                     command: deploy-war
                     arguments:
-                      war-uri: "{$.war-uri}"
+                      war-uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
                       context-attrs: {
-                        "docBase": "{$.war-uri}",
-                        "debug": "5",
+                        "docBase": "{$.chefAttrs['*'][0]['solr']['war_uri']}",
+                        "debug": "{$.solr-debug}",
                         "crossContext": "true",
                         "privileged": "true",
                         "allowLinking": "true"
