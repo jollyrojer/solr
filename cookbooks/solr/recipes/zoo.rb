@@ -23,7 +23,7 @@ template "#{node["solr"]["path"]}/webapps/zkcli.sh" do
 end
 
 #populate zookeeper
-zoo_connect = "#{node["solr"]["zookeeper"]["host"]}:#{node["solr"]["zookeeper"]["port"]}"
+zoo_connect = "#{node["solr"]["zookeeper"]["nodes"].join(",")}"
 solr_cores = "#{node["solr"]["path"]}/cores"
 
 bash "upload collections to zoo" do

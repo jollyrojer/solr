@@ -4,6 +4,7 @@ application:
     input.solr-collections: ["collection1","collection2"]
     input.solr-debug: "5"
     input.app-port: "8080"
+    input.solr-quantity: "1"
 
   interfaces:
     input:
@@ -11,6 +12,7 @@ application:
       solr-collections: "bind(solr#input.solr-collections)"
       solr-debug: "bind(solr#input.solr-debug)"
       app-port: "bind(tomcat#input.app-port)"
+      solr-quantity: "bind(tomcat#input.quantity)"
     endpoints:
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"

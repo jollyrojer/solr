@@ -1,10 +1,11 @@
 application:
   configuration:
     input.solr-version: "4.6.0"
-    input.solr-collections: ["collection1","collection2"]
+    input.solr-collections: ["collection1"]
     input.solr-debug: "5"
     input.app-port: "8080"
     input.exhibitor-port: "8090"
+    input.solr-quantity: "4"
 
   interfaces:
     input:
@@ -12,14 +13,16 @@ application:
       solr-collections: "bind(solr#input.solr-collections)"
       solr-debug: "bind(solr#input.solr-debug)"
       app-port: "bind(tomcat#input.app-port)"
-      exhibitor-port: "bind(solr#input.exhibitor-port)"
+      exhibitor-port: "bind(zookeeper#input.exhibitor-port)"
+      solr-quantity: "bind(tomcat#input.quantity)"
     endpoints:
-      zoo-ui: "bind(solr#result.zoo-ui)"
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"
     nodes:
       app-hosts: "bind(tomcat#output.app-hosts)"
       app-port: "bind(tomcat#output.app-port)"
+      zoo-nodes: "bind(zookeeper#output.zoo-nodes)"
+      zoo-ui: "bind(zookeeper#output.zoo-ui)"
 
   components:
     wfService:
@@ -50,6 +53,17 @@ application:
           app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
 
+    zookeeper:
+      type: reference.Submodule
+      configuration:
+        __locator.application-id: "zoo-cloud"
+      interfaces:
+        input:
+          exhibitor-port: configuration(string)
+        output:
+          zoo-nodes: publish-signal(list<string>)
+          zoo-ui: publish-signal(list<string>)
+
     solr:
       type: workflow.Instance
       interfaces:
@@ -57,13 +71,11 @@ application:
           solr-version: configuration(string)
           solr-collections: configuration(list<string>)
           solr-debug: configuration(string)
-          exhibitor-port: configuration(string)
-          #constants
-          #lib-uri: configuration(list<string>)
-          #war-uri: configuration(string)
-        nodes:
+        app-nodes:
           app-hosts: consume-signal(list<string>)
           app-port: consume-signal(string)
+        zoo:
+          zoo-nodes: consume-signal(list<string>)
         tomcat-actions:
           deploy-libs: send-command(list<string> lib-uri)
           deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
@@ -72,13 +84,10 @@ application:
         result:
           solr-url: publish-signal(list<string>)
           solr-node: publish-signal(list<string>)
-          zoo-ui: publish-signal(list<string>)
 
-      required: [keypair-store, nodes]
+      required: [keypair-store, app-nodes, zoo]
 
       configuration:
-        #input.lib-uri: ["file:///tmp/slf4j-1.6.6/slf4j-jdk14-1.6.6.jar", "file:///tmp/slf4j-1.6.6/log4j-over-slf4j-1.6.6.jar", "file:///tmp/slf4j-1.6.6/slf4j-api-1.6.6.jar", "file:///tmp/slf4j-1.6.6/jcl-over-slf4j-1.6.6.jar"]
-        #input.war-uri: "file:///opt/solr/webapps/solr.war"
         configuration.triggers: {}
         configuration.workflows:
           launch:
@@ -86,11 +95,9 @@ application:
               - solr-version:
                   description: Solr version
               - solr-collections:
-                  description: Solr collection names to create
+                  description: Solr collection names
               - solr-debug:
                   description: Debug level
-              - exhibitor-port:
-                  description: Zookeeper exhibitor port
             steps:
               - get-env-props:
                   action: getEnvironmentProperties
@@ -106,38 +113,24 @@ application:
                     hardwareId: ""
                     vmIdentity: ubuntu
                     retryCount: 0
-                    staticIps: "{$.props.nodes.app-hosts}"
-              - deploy-zoo:
+                    staticIps: "{$.props.app-nodes.app-hosts}"
+              - deploy-solr:
                   action: "chefrun"
-                  phase: deploy-zoo
+                  phase: deploy-solr
                   precedingPhases: [ provision-node ]
                   parameters:
                     isSolo: true
                     roles: [ default ]
-                    runList: [ "recipe[zookeeper-component]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/zookeeper.tar.gz"
-                    jattrs:
-                      exhibitor:
-                        opts:
-                          port: "{$.exhibitor-port}"
-              - deploy-solr:
-                  action: "chefrun"
-                  phase: deploy-solr
-                  precedingPhases: [ deploy-zoo ]
-                  parameters:
-                    isSolo: true
-                    roles: [ default ]
                     runList: [ "recipe[solr]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr.tar.gz"
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
                     jattrs:
                       solr:
                         version: "{$.solr-version}"
                         collection: "{$.solr-collections}"
                         zookeeper:
-                          host: "{$.props.nodes.app-hosts[0]}"
+                          nodes: "{$.props.zoo.zoo-nodes}"
                   output:
                     chefAttrs: chefState
-
               - deploy-libs:
                   action: serviceCall
                   phase: deploy-libs
@@ -174,12 +167,10 @@ application:
                           }
 
             return:
-              zoo-ui:
-                value: "http://{$.props.nodes.app-hosts}:{$.exhibitor-port}/exhibitor/v1/ui/index.html"
               solr-node:
-                value: "{$.props.nodes.app-hosts}"
+                value: "{$.props.app-nodes.app-hosts}"
               solr-url:
-                value: "http://{$.props.nodes.app-hosts}:{$.props.nodes.app-port}/solr"
+                value: "http://{$.props.app-nodes.app-hosts}:{$.props.app-nodes.app-port}/solr"
 
           destroy:
             steps: []
@@ -187,3 +178,4 @@ application:
     - [solr, wfService]
     - [solr, secureStore]
     - [solr, tomcat]
+    - [solr, zookeeper]

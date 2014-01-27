@@ -145,14 +145,10 @@ else
     owner node["tomcat"]["user"]
     group node["tomcat"]["group"]
     source "solr.xml.erb"
-    variables({
-      :zooip => node["solr"]["zookeeper"]["host"],
-      :zooport => node["solr"]["zookeeper"]["port"]
-    })
   end
 end
 
-if ( ! node["solr"]["zookeeper"]["host"].empty? )
+if ( ! node["solr"]["zookeeper"]["nodes"].empty? )
   include_recipe "solr::zoo"
 end
 

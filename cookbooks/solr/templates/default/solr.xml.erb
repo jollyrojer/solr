@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<% if @zooip.empty? %>
+<% if node["solr"]["zookeeper"]["nodes"].empty? %>
 <solr persistent="true" sharedLib="lib">
   <cores adminPath="/admin/cores" host="${host:}" hostPort="8080" hostContext="${hostContext:}">
 <% else %>
-<solr persistent="true" sharedLib="lib" zkHost="<%= @zooip %>:<%= @zooport %>">
+<solr persistent="true" sharedLib="lib" zkHost="<%= node["solr"]["zookeeper"]["nodes"].join(",") %>">
   <cores adminPath="/admin/cores" host="${host:}" hostPort="8080" hostContext="${hostContext:}" zkClientTimeout="${zkClientTimeout:15000}">
 <% end %>
   <% @node["solr"]["collection"].each do |collname| %>
