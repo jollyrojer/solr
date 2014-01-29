@@ -116,7 +116,7 @@ if ( node["solr"]["collection"][0].start_with?('http:','https:','ftp:','file:'))
   file_replace "remove hostPort in solr.xml" do
     replace 'hostPort=".*"'
     with ''
-    path '#{node["solr"]["path"]}/cores/solr.xml'
+    path "#{node["solr"]["path"]}/cores/solr.xml"
   end
   
   file_replace "remove hostcontext" do
