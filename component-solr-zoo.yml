@@ -6,17 +6,17 @@ application:
     input.app-port: "8080"
     input.exhibitor-port: "8090"
     input.solr-quantity: "4"
-    input.solr-java-options: "${JAVA_OPTS} -DnumShards=2"
+    input.solr-shards-num: "2"
 
   interfaces:
     input:
       solr-version: "bind(solr#input.solr-version)"
       solr-collections: "bind(solr#input.solr-collections)"
       solr-debug: "bind(solr#input.solr-debug)"
+      solr-shards-num: "bind(solr#input.solr-shards-num)"
       exhibitor-port: "bind(zookeeper#input.exhibitor-port)"
+      app-port: "bind(tomcat#input.app-port, solr#input.solr-port)"
       solr-quantity: "bind(tomcat#input.quantity)"
-      solr-java-options: "bind(tomcat#input.java-opts)"
-      app-port: "bind(tomcat#input.app-port)"
     endpoints:
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"
@@ -48,8 +48,8 @@ application:
         input:
           app-port: configuration(string)
           quantity: configuration(string)
-          java-opts: configuration(string)
         management:
+          reconfigure: receive-command(string java-opts)
           deploy-libs: receive-command(list<string> lib-uri)
           deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
         output:
@@ -64,22 +64,25 @@ application:
         input:
           exhibitor-port: configuration(string)
         output:
-          zoo-nodes: publish-signal(list<string>)
+          zoo-nodes: publish-signal(string)
           zoo-ui: publish-signal(list<string>)
 
     solr:
       type: workflow.Instance
       interfaces:
         input:
+          solr-port: configuration(string)
           solr-version: configuration(string)
           solr-collections: configuration(list<string>)
           solr-debug: configuration(string)
+          solr-shards-num: configuration(string)
         app-nodes:
           app-hosts: consume-signal(list<string>)
           app-port: consume-signal(string)
         zoo:
-          zoo-nodes: consume-signal(list<string>)
+          zoo-nodes: consume-signal(string)
         tomcat-actions:
+          reconfigure: send-command(string java-opts)
           deploy-libs: send-command(list<string> lib-uri)
           deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
         keypair-store:
@@ -95,12 +98,16 @@ application:
         configuration.workflows:
           launch:
             parameters:
+              - solr-port:
+                  description: Solr app port
               - solr-version:
                   description: Solr version
               - solr-collections:
                   description: Solr collection names
               - solr-debug:
                   description: Debug level
+              - solr-shards-num:
+                  description: "Number os solr shards"
             steps:
               - get-env-props:
                   action: getEnvironmentProperties
@@ -117,10 +124,20 @@ application:
                     vmIdentity: ubuntu
                     retryCount: 0
                     staticIps: "{$.props.app-nodes.app-hosts}"
+              - reconfigure-tomcat:
+                  action: serviceCall
+                  phase: reconfigure-tomcat
+                  precedingPhases: [get-env-props]
+                  parameters:
+                    timeout: 600
+                    service: tomcat-actions
+                    command: reconfigure
+                    arguments:
+                      java-opts: "$${{JAVA_OPTS}} -DzkHost={$.props.zoo.zoo-nodes} -DnumShards={$.solr-shards-num} -DzkClientTimeout=20000"
               - deploy-solr:
                   action: "chefrun"
                   phase: deploy-solr
-                  precedingPhases: [ provision-node ]
+                  precedingPhases: [ reconfigure-tomcat ]
                   parameters:
                     isSolo: true
                     roles: [ default ]
@@ -128,6 +145,8 @@ application:
                     recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
                     jattrs:
                       solr:
+                        port: "{$.solr-port}"
+                        hostcontext: "solr"
                         version: "{$.solr-version}"
                         collection: "{$.solr-collections}"
                         zookeeper:

@@ -110,6 +110,27 @@ if ( node["solr"]["collection"][0].start_with?('http:','https:','ftp:','file:'))
       EOH
     end
   end
+
+  include_recipe "file"
+  
+  file_replace "remove hostPort in solr.xml" do
+    replace 'hostPort=".*"'
+    with ''
+    path '#{node["solr"]["path"]}/cores/solr.xml'
+  end
+  
+  file_replace "remove hostcontext" do
+    replace 'hostContext=".*"'
+    with ''
+    path "#{node["solr"]["path"]}/cores/solr.xml"
+  end
+
+  file_replace "set hostPort hostContext" do
+    replace '<cores'
+    with "<cores hostPort=\"#{node["solr"]["port"]}\" hostContext=\"#{node["solr"]["hostcontext"]}\" "
+    path "#{node["solr"]["path"]}/cores/solr.xml"
+  end 
+
 else
   #If collection not uri
   #Create collections
