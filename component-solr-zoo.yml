@@ -1,7 +1,7 @@
 application:
   configuration:
     input.solr-version: "4.6.0"
-    input.solr-collections: ["collection1"]
+    input.solr-collections: ["test_one"]
     input.solr-debug: "5"
     input.app-port: "8080"
     input.exhibitor-port: "8090"
@@ -64,7 +64,7 @@ application:
         input:
           exhibitor-port: configuration(string)
         output:
-          zoo-nodes: publish-signal(string)
+          zoo-nodes: publish-signal(list<string>)
           zoo-ui: publish-signal(list<string>)
 
     solr:
@@ -80,7 +80,7 @@ application:
           app-hosts: consume-signal(list<string>)
           app-port: consume-signal(string)
         zoo:
-          zoo-nodes: consume-signal(string)
+          zoo-nodes: consume-signal(list<string>)
         tomcat-actions:
           reconfigure: send-command(string java-opts)
           deploy-libs: send-command(list<string> lib-uri)
@@ -133,7 +133,7 @@ application:
                     service: tomcat-actions
                     command: reconfigure
                     arguments:
-                      java-opts: "$${{JAVA_OPTS}} -DzkHost={$.props.zoo.zoo-nodes} -DnumShards={$.solr-shards-num} -DzkClientTimeout=20000"
+                      java-opts: "$${{JAVA_OPTS}} -DnumShards={$.solr-shards-num}"
               - deploy-solr:
                   action: "chefrun"
                   phase: deploy-solr
@@ -149,10 +149,27 @@ application:
                         hostcontext: "solr"
                         version: "{$.solr-version}"
                         collection: "{$.solr-collections}"
-                        zookeeper:
-                          nodes: "{$.props.zoo.zoo-nodes}"
+                        #zookeeper:
+                          #nodes: "{$.props.zoo.zoo-nodes}"
                   output:
                     chefAttrs: chefState
+              - create-collections:
+                  action: "chefrun"
+                  phase: create-collections
+                  precedingPhases: [ deploy-solr ]
+                  parameters:
+                    isSolo: true
+                    roles: [ default ]
+                    runList: [ "recipe[solr::create_collection]" ]
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    jattrs:
+                      solr:
+                        port: "{$.solr-port}"
+                        hostcontext: "solr"
+                        version: "{$.solr-version}"
+                        collection: "{$.solr-collections}"
+                        zookeeper:
+                          hosts: "{$.props.zoo.zoo-nodes}"
               - deploy-libs:
                   action: serviceCall
                   phase: deploy-libs
