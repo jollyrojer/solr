@@ -24,8 +24,6 @@ application:
       #zookeeper inputs
       exhibitor-port: "bind(zookeeper#input.exhibitor-port)"
       zookeeper-quantity: "bind(zookeeper#input.zookeeper-quantity)"
-    management:
-      manage-collection: "bind(solr#actions.manage-collection)"
     endpoints:
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"
@@ -103,13 +101,12 @@ application:
         result:
           solr-url: publish-signal(list<string>)
           solr-node: publish-signal(list<string>)
-        actions:
-          manage-collection: receive-command(list<string> solr-collections)
 
       required: [keypair-store, app-nodes, zoo]
 
       configuration:
-        configuration.triggers: {}
+        configuration.triggers:
+          input.solr-collections: manage-collection
         configuration.workflows:
           launch:
             parameters:
