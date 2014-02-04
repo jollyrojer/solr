@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 JVM="java"
 sdir="`dirname \"$0\"`"
-PATH=$JAVA_HOME/bin:$PATH $JVM -Dlog4j.configuration=file:<%= @solr_src %>/log4j.properties -classpath "/tmp/solr_war/WEB-INF/lib/*:<%= @solr_src %>/../lib/ext/*" org.apache.solr.cloud.ZkCLI ${1+"$@"}
+PATH=$JAVA_HOME/bin:$PATH $JVM -Dlog4j.configuration=file:<%= node["solr"]["path"] %>/webapps/log4j.properties -classpath "/tmp/solr_war/WEB-INF/lib/*:<%= @solr_src %>/../lib/ext/*" org.apache.solr.cloud.ZkCLI ${1+"$@"}

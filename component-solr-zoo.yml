@@ -1,22 +1,31 @@
 application:
   configuration:
     input.solr-version: "4.6.0"
-    input.solr-collections: ["test_one"]
-    input.solr-debug: "5"
+    input.solr-collections: ["testone"]
+    input.solr-shards-num: "2"
+    input.solr-loglevel: "FINE"
+    input.solr-zookeeper-loglevel: "INFO"
     input.app-port: "8080"
     input.exhibitor-port: "8090"
     input.solr-quantity: "4"
-    input.solr-shards-num: "2"
+    input.zookeeper-quantity: "3"
 
   interfaces:
     input:
+      #solr inputs
       solr-version: "bind(solr#input.solr-version)"
       solr-collections: "bind(solr#input.solr-collections)"
-      solr-debug: "bind(solr#input.solr-debug)"
       solr-shards-num: "bind(solr#input.solr-shards-num)"
-      exhibitor-port: "bind(zookeeper#input.exhibitor-port)"
+      solr-loglevel: "bind(solr#input.solr-loglevel)"
+      solr-zookeeper-loglevel: "bind(solr#input.solr-zookeeper-loglevel)"
+      #tomcat inputs
       app-port: "bind(tomcat#input.app-port, solr#input.solr-port)"
       solr-quantity: "bind(tomcat#input.quantity)"
+      #zookeeper inputs
+      exhibitor-port: "bind(zookeeper#input.exhibitor-port)"
+      zookeeper-quantity: "bind(zookeeper#input.zookeeper-quantity)"
+    management:
+      manage-collection: "bind(solr#actions.manage-collection)"
     endpoints:
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"
@@ -52,6 +61,7 @@ application:
           reconfigure: receive-command(string java-opts)
           deploy-libs: receive-command(list<string> lib-uri)
           deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
+          manage-service: receive-command(string service-action)
         output:
           app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
@@ -63,6 +73,7 @@ application:
       interfaces:
         input:
           exhibitor-port: configuration(string)
+          zookeeper-quantity: configuration(string)
         output:
           zoo-nodes: publish-signal(list<string>)
           zoo-ui: publish-signal(list<string>)
@@ -74,7 +85,8 @@ application:
           solr-port: configuration(string)
           solr-version: configuration(string)
           solr-collections: configuration(list<string>)
-          solr-debug: configuration(string)
+          solr-loglevel: configuration(string)
+          solr-zookeeper-loglevel: configuration(string)
           solr-shards-num: configuration(string)
         app-nodes:
           app-hosts: consume-signal(list<string>)
@@ -82,6 +94,7 @@ application:
         zoo:
           zoo-nodes: consume-signal(list<string>)
         tomcat-actions:
+          manage-service: send-command(string service-action)
           reconfigure: send-command(string java-opts)
           deploy-libs: send-command(list<string> lib-uri)
           deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
@@ -90,6 +103,8 @@ application:
         result:
           solr-url: publish-signal(list<string>)
           solr-node: publish-signal(list<string>)
+        actions:
+          manage-collection: receive-command(list<string> solr-collections)
 
       required: [keypair-store, app-nodes, zoo]
 
@@ -104,8 +119,10 @@ application:
                   description: Solr version
               - solr-collections:
                   description: Solr collection names
-              - solr-debug:
-                  description: Debug level
+              - solr-loglevel:
+                  description: Solr debug level
+              - solr-zookeeper-loglevel:
+                  description: Solr zookeeper debug level
               - solr-shards-num:
                   description: "Number os solr shards"
             steps:
@@ -133,7 +150,7 @@ application:
                     service: tomcat-actions
                     command: reconfigure
                     arguments:
-                      java-opts: "$${{JAVA_OPTS}} -DnumShards={$.solr-shards-num}"
+                      java-opts: "$${{JAVA_OPTS}} -DnumShards={$.solr-shards-num} -Dlog4j.configuration=file:///opt/solr/webapps/log4j.properties"
               - deploy-solr:
                   action: "chefrun"
                   phase: deploy-solr
@@ -148,9 +165,9 @@ application:
                         port: "{$.solr-port}"
                         hostcontext: "solr"
                         version: "{$.solr-version}"
-                        collection: "{$.solr-collections}"
-                        #zookeeper:
-                          #nodes: "{$.props.zoo.zoo-nodes}"
+                        loglevel: "{$.solr-loglevel}"
+                        zookeeper:
+                          loglevel: "{$.solr-zookeeper-loglevel}"
                   output:
                     chefAttrs: chefState
               - create-collections:
@@ -166,7 +183,6 @@ application:
                       solr:
                         port: "{$.solr-port}"
                         hostcontext: "solr"
-                        version: "{$.solr-version}"
                         collection: "{$.solr-collections}"
                         zookeeper:
                           hosts: "{$.props.zoo.zoo-nodes}"
@@ -192,7 +208,7 @@ application:
                       war-uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
                       context-attrs: {
                         "docBase": "{$.chefAttrs['*'][0]['solr']['war_uri']}",
-                        "debug": "{$.solr-debug}",
+                        "debug": "5",
                         "crossContext": "true",
                         "privileged": "true",
                         "allowLinking": "true"
@@ -210,6 +226,57 @@ application:
                 value: "{$.props.app-nodes.app-hosts}"
               solr-url:
                 value: "http://{$.props.app-nodes.app-hosts}:{$.props.app-nodes.app-port}/solr"
+
+          manage-collection:
+            parameters:
+              - solr-collections:
+                  description: "Solr collection names"
+            steps:
+              - stop-service-tomcat:
+                  action: serviceCall
+                  phase: stop-service-tomcat
+                  parameters:
+                    timeout: 600
+                    service: tomcat-actions
+                    command: manage-service
+                    arguments:
+                      service-action: "stop"
+              - delete-collection:
+                  action: "chefrun"
+                  phase: "delete-collection"
+                  precedingPhases: ["stop-service-tomcat"]
+                  parameters:
+                    isSolo: true
+                    roles: ["default"]
+                    runList: ["recipe[solr::delete_collection]"]
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+              - create-collections:
+                  action: "chefrun"
+                  phase: create-collections
+                  precedingPhases: ["delete-collection"]
+                  parameters:
+                    isSolo: true
+                    roles: [ default ]
+                    runList: [ "recipe[solr::create_collection]" ]
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    jattrs:
+                      solr:
+                        port: "{$.solr-port}"
+                        hostcontext: "solr"
+                        collection: "{$.solr-collections}"
+                        zookeeper:
+                          hosts: "{$.props.zoo.zoo-nodes}"
+              - start-service-tomcat:
+                  action: serviceCall
+                  phase: start-service-tomcat
+                  precedingPhases: ["create-collections"]
+                  parameters:
+                    timeout: 600
+                    service: tomcat-actions
+                    command: manage-service
+                    arguments:
+                      service-action: "start"
+
 
           destroy:
             steps: []

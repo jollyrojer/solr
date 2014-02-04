@@ -5,24 +5,6 @@
 
 require "pathname"
 
-# Since solr 4.3.0 we need slf4j jar http://wiki.apache.org/solr/SolrLogging#Solr_4.3_and_above
-slf4j_url = "#{node["solr"]["slf4j"]["url"]}/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz"
-remote_file "/tmp/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz" do
-  source slf4j_url
-  action :create_if_missing
-end
-
-# Extract required libs
-libs = []
-["slf4j-jdk14-#{node["solr"]["slf4j"]["version"]}.jar", "log4j-over-slf4j-#{node["solr"]["slf4j"]["version"]}.jar", "slf4j-api-#{node["solr"]["slf4j"]["version"]}.jar", "jcl-over-slf4j-#{node["solr"]["slf4j"]["version"]}.jar"].each do |file|
-  execute "extract #{file}" do
-    command "tar -xzvf /tmp/slf4j-#{node["solr"]["slf4j"]["version"]}.tar.gz -C /tmp/ slf4j-#{node["solr"]["slf4j"]["version"]}/#{file}"
-    creates "/tmp/slf4j-#{node["solr"]["slf4j"]["version"]}/#{file}"
-  end
-libs << "file:///tmp/slf4j-#{node["solr"]["slf4j"]["version"]}/#{file}"
-end
-node.set["solr"]["lib_uri"] = libs
-
 # Extract war file from solr archive
 solr_url = "#{node["solr"]["url"]}#{node["solr"]["version"]}/solr-#{node["solr"]["version"]}.tgz"
 remote_file "solr_src" do
@@ -34,6 +16,18 @@ end
 execute "extract solr_src" do
   command "tar -xzvf /tmp/solr-#{node["solr"]["version"]}.tgz -C /tmp"
   creates "/tmp/solr-#{node["solr"]["version"]}"
+end
+
+# Since solr 4.3.0 we need slf4j jar http://wiki.apache.org/solr/SolrLogging#Solr_4.3_and_above
+# Extract required libs
+
+ruby_block "get logging libs" do
+  block do
+    folder = "/tmp/solr-#{node["solr"]["version"]}/example/lib/ext/"
+    libs=(Dir.entries(folder).select {|f| !File.directory? f}).map {|f| "file://" + File.join(folder, f)}
+    node.set["solr"]["lib_uri"] = libs
+  end
+  subscribes :create, resources(:execute => "extract solr_src")
 end
 
 #Copy sorl.war to webapps
@@ -59,12 +53,26 @@ directory "#{node["solr"]["path"]}/cores" do
   mode "00755"
   action :create
 end
-#create cores config
 
+#create cores config
 template "#{node["solr"]["path"]}/cores/solr.xml" do
   owner node["tomcat"]["user"]
   group node["tomcat"]["group"]
   source "solr.xml.erb"
+end
+
+directory "#{node["solr"]["logdir"]}" do
+  owner node["tomcat"]["user"]
+  group node["tomcat"]["group"]
+  mode 00755
+  action :create
+end
+
+#create log4j props
+template "#{node["solr"]["path"]}/webapps/log4j.properties" do
+  owner node["tomcat"]["user"]
+  group node["tomcat"]["group"]
+  source "log4j.properties.xml.erb"
 end
 
 execute "ln home" do

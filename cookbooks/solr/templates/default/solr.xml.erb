@@ -2,14 +2,14 @@
 <% if node["solr"]["zookeeper"]["nodes"].empty? %>
 <solr persistent="true" sharedLib="lib">
   <cores adminPath="/admin/cores" hostPort="<%= node["solr"]["port"] %>" hostContext="<%= node["solr"]["hostcontext"] %>" >
-  <% else %>
+<% else %>
 <solr persistent="true" sharedLib="lib" zkHost="<%= node["solr"]["zookeeper"]["nodes"] %>">
   <cores adminPath="/admin/cores" hostPort="<%= node["solr"]["port"] %>" hostContext="<%= node["solr"]["hostcontext"] %>" zkClientTimeout="<%= node["solr"]["zookeeper"]["timeout"] %>">
-  <% end %>
-  <% if ( ! node["solr"]["collection"].empty?) %>
+<% end %>
+<% if ( ! node["solr"]["collection"].empty?) %>
     <% @node["solr"]["collection"].each do |collname| %>
     <core name="<%= collname  %>" instanceDir="<%= collname %>" /> 
     <% end %>
-  <% end %>
+<% end %>
   </cores>
 </solr>
