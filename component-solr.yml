@@ -1,24 +1,23 @@
 application:
   configuration:
     input.solr-version: "4.6.0"
-    input.solr-collections: ["collection1","collection2"]
-    input.solr-debug: "5"
+    input.solr-collections: ["testone"]
+    input.solr-loglevel: "FINE"
     input.app-port: "8080"
     input.solr-quantity: "1"
 
   interfaces:
     input:
+      #solr inputs
       solr-version: "bind(solr#input.solr-version)"
       solr-collections: "bind(solr#input.solr-collections)"
-      solr-debug: "bind(solr#input.solr-debug)"
-      app-port: "bind(tomcat#input.app-port)"
+      solr-loglevel: "bind(solr#input.solr-loglevel)"
+      #tomcat inputs
+      app-port: "bind(tomcat#input.app-port, solr#input.solr-port)"
       solr-quantity: "bind(tomcat#input.quantity)"
     endpoints:
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"
-    nodes:
-      app-hosts: "bind(tomcat#output.app-hosts)"
-      app-port: "bind(tomcat#output.app-port)"
 
   components:
     wfService:
@@ -43,8 +42,10 @@ application:
           app-port: configuration(string)
           quantity: configuration(string)
         management:
+          reconfigure: receive-command(string java-opts)
           deploy-libs: receive-command(list<string> lib-uri)
           deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
+          manage-service: receive-command(string service-action)
         output:
           app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
@@ -53,13 +54,16 @@ application:
       type: workflow.Instance
       interfaces:
         input:
+          solr-port: configuration(string)
           solr-version: configuration(string)
           solr-collections: configuration(list<string>)
-          solr-debug: configuration(string)
-        nodes:
+          solr-loglevel: configuration(string)
+        app-nodes:
           app-hosts: consume-signal(list<string>)
           app-port: consume-signal(string)
         tomcat-actions:
+          manage-service: send-command(string service-action)
+          reconfigure: send-command(string java-opts)
           deploy-libs: send-command(list<string> lib-uri)
           deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
         keypair-store:
@@ -68,19 +72,22 @@ application:
           solr-url: publish-signal(list<string>)
           solr-node: publish-signal(list<string>)
 
-      required: [keypair-store, nodes]
+      required: [keypair-store, app-nodes]
 
       configuration:
-        configuration.triggers: {}
+        configuration.triggers:
+          input.solr-collections: manage-collection
         configuration.workflows:
           launch:
             parameters:
+              - solr-port:
+                  description: Solr app port
               - solr-version:
                   description: Solr version
               - solr-collections:
-                  description: solr collection names to create
-              - solr-debug:
-                  description: Debug level
+                  description: Solr collection names
+              - solr-loglevel:
+                  description: Solr debug level
             steps:
               - get-env-props:
                   action: getEnvironmentProperties
@@ -96,22 +103,48 @@ application:
                     hardwareId: ""
                     vmIdentity: ubuntu
                     retryCount: 0
-                    staticIps: "{$.props.nodes.app-hosts}"
+                    staticIps: "{$.props.app-nodes.app-hosts}"
+              - reconfigure-tomcat:
+                  action: serviceCall
+                  phase: reconfigure-tomcat
+                  precedingPhases: [get-env-props]
+                  parameters:
+                    timeout: 600
+                    service: tomcat-actions
+                    command: reconfigure
+                    arguments:
+                      java-opts: "$${{JAVA_OPTS}} -Dlog4j.configuration=file:///opt/solr/webapps/log4j.properties"
               - deploy-solr:
                   action: "chefrun"
                   phase: deploy-solr
-                  precedingPhases: [ provision-node ]
+                  precedingPhases: [ reconfigure-tomcat ]
                   parameters:
                     isSolo: true
                     roles: [ default ]
                     runList: [ "recipe[solr]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr.tar.gz"
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
                     jattrs:
                       solr:
+                        port: "{$.solr-port}"
+                        hostcontext: "solr"
                         version: "{$.solr-version}"
-                        collection: "{$.solr-collections}"
+                        loglevel: "{$.solr-loglevel}"
                   output:
                     chefAttrs: chefState
+              - create-collections:
+                  action: "chefrun"
+                  phase: create-collections
+                  precedingPhases: [ deploy-solr ]
+                  parameters:
+                    isSolo: true
+                    roles: [ default ]
+                    runList: [ "recipe[solr::create_collection]" ]
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    jattrs:
+                      solr:
+                        port: "{$.solr-port}"
+                        hostcontext: "solr"
+                        collection: "{$.solr-collections}"
               - deploy-libs:
                   action: serviceCall
                   phase: deploy-libs
@@ -134,7 +167,7 @@ application:
                       war-uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
                       context-attrs: {
                         "docBase": "{$.chefAttrs['*'][0]['solr']['war_uri']}",
-                        "debug": "{$.solr-debug}",
+                        "debug": "5",
                         "crossContext": "true",
                         "privileged": "true",
                         "allowLinking": "true"
@@ -146,11 +179,61 @@ application:
                             "value": "/opt/solr/cores",
                             "override": "true"
                           }
+
             return:
               solr-node:
-                value: "{$.props.nodes.app-hosts}"
+                value: "{$.props.app-nodes.app-hosts}"
               solr-url:
-                value: "http://{$.props.nodes.app-hosts}:{$.props.nodes.app-port}/solr"
+                value: "http://{$.props.app-nodes.app-hosts}:{$.props.app-nodes.app-port}/solr"
+
+          manage-collection:
+            parameters:
+              - solr-collections:
+                  description: "Solr collection names"
+            steps:
+              - stop-service-tomcat:
+                  action: serviceCall
+                  phase: stop-service-tomcat
+                  parameters:
+                    timeout: 600
+                    service: tomcat-actions
+                    command: manage-service
+                    arguments:
+                      service-action: "stop"
+              - delete-collection:
+                  action: "chefrun"
+                  phase: "delete-collection"
+                  precedingPhases: ["stop-service-tomcat"]
+                  parameters:
+                    isSolo: true
+                    roles: ["default"]
+                    runList: ["recipe[solr::delete_collection]"]
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+              - create-collections:
+                  action: "chefrun"
+                  phase: create-collections
+                  precedingPhases: ["delete-collection"]
+                  parameters:
+                    isSolo: true
+                    roles: [ default ]
+                    runList: [ "recipe[solr::create_collection]" ]
+                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    jattrs:
+                      solr:
+                        port: "{$.solr-port}"
+                        hostcontext: "solr"
+                        collection: "{$.solr-collections}"
+              - start-service-tomcat:
+                  action: serviceCall
+                  phase: start-service-tomcat
+                  precedingPhases: ["create-collections"]
+                  parameters:
+                    timeout: 600
+                    service: tomcat-actions
+                    command: manage-service
+                    arguments:
+                      service-action: "start"
+
 
           destroy:
             steps: []
