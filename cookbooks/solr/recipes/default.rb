@@ -10,7 +10,9 @@ solr_url = "#{node["solr"]["url"]}#{node["solr"]["version"]}/solr-#{node["solr"]
 remote_file "solr_src" do
   path "/tmp/solr-#{node["solr"]["version"]}.tgz"
   source solr_url
+  checksum node.solr.checksum.fetch(node.solr.version, nil)
   action :create_if_missing
+  retries 3
 end
 
 execute "extract solr_src" do
