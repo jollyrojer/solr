@@ -1,6 +1,6 @@
 application:
   configuration:
-    input.solr-version: "4.6.0"
+    input.solr-version: "4.4.0"
     input.solr-collections: ["testone"]
     input.solr-shards-num: "2"
     input.solr-loglevel: "FINE"
@@ -28,29 +28,16 @@ application:
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"
     nodes:
-      app-hosts: "bind(tomcat#output.app-hosts)"
-      app-port: "bind(tomcat#output.app-port)"
-      zoo-nodes: "bind(zookeeper#output.zoo-nodes)"
+      solr-hosts: "bind(tomcat#output.app-hosts)"
+      solr-port: "bind(tomcat#output.app-port)"
+      solr-zoo-nodes: "bind(solr#result.solr-zoo-nodes)"
       zoo-ui: "bind(zookeeper#output.zoo-ui)"
 
   components:
-    wfService:
-      type: reference.Service
-      interfaces:
-        executor:
-          execute-workflow: receive-command(object request => object status => object status)
-          execute-command: send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
-
-    secureStore:
-      type: reference.Service
-      interfaces:
-        keypair-store:
-          get-keypair: receive-command(string id => object privateKey)
-
     tomcat:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "tomcat"
+        __locator.application-id: "533bf86ce4b0a12dbc347cb1"
       interfaces:
         input:
           app-port: configuration(string)
@@ -58,7 +45,7 @@ application:
         management:
           reconfigure: receive-command(string java-opts)
           deploy-libs: receive-command(list<string> lib-uri)
-          deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
+          deploy-war: receive-command(string uri, string appname, bool create-context, object context-attrs, object context-nodes)
           manage-service: receive-command(string service-action)
         output:
           app-hosts: publish-signal(list<string>)
@@ -67,7 +54,7 @@ application:
     zookeeper:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "zoo-cloud"
+        __locator.application-id: "533bfa82e4b0a12dbc347cbe"
       interfaces:
         input:
           exhibitor-port: configuration(string)
@@ -75,6 +62,7 @@ application:
         output:
           zoo-nodes: publish-signal(list<string>)
           zoo-ui: publish-signal(list<string>)
+          zoo-cli-port: publish-signal(string)
 
     solr:
       type: workflow.Instance
@@ -95,14 +83,13 @@ application:
           manage-service: send-command(string service-action)
           reconfigure: send-command(string java-opts)
           deploy-libs: send-command(list<string> lib-uri)
-          deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
-        keypair-store:
-          get-keypair: send-command(string id => object privateKey)
+          deploy-war: send-command(string uri, string appname, bool create-context, object context-attrs, object context-nodes)          
         result:
           solr-url: publish-signal(list<string>)
           solr-node: publish-signal(list<string>)
+          solr-zoo-nodes: publish-signal(string)
 
-      required: [keypair-store, app-nodes, zoo]
+      required: [app-nodes, zoo, tomcat-actions]
 
       configuration:
         configuration.triggers:
@@ -156,7 +143,7 @@ application:
                     isSolo: true
                     roles: [ default ]
                     runList: [ "recipe[solr]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    recipeUrl: "https://raw.githubusercontent.com/loky9000/solr/master/solr-cookbooks.tar.gz"
                     jattrs:
                       solr:
                         port: "{$.solr-port}"
@@ -178,11 +165,14 @@ application:
                     recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
                     jattrs:
                       solr:
+                        version: "{$.solr-version}"
                         port: "{$.solr-port}"
                         hostcontext: "solr"
                         collection: "{$.solr-collections}"
                         zookeeper:
                           hosts: "{$.props.zoo.zoo-nodes}"
+                  output:
+                     chefAttrs1: chefState
               - deploy-libs:
                   action: serviceCall
                   phase: deploy-libs
@@ -202,7 +192,9 @@ application:
                     service: tomcat-actions
                     command: deploy-war
                     arguments:
-                      war-uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
+                      create-context: true
+                      uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
+                      appname: "solr.war"
                       context-attrs: {
                         "docBase": "{$.chefAttrs['*'][0]['solr']['war_uri']}",
                         "debug": "5",
@@ -223,6 +215,8 @@ application:
                 value: "{$.props.app-nodes.app-hosts}"
               solr-url:
                 value: "http://{$.props.app-nodes.app-hosts}:{$.props.app-nodes.app-port}/solr"
+              solr-zoo-nodes:
+                value: "{$.chefAttrs1['*'][0].['solr']['zookeeper']['nodes']}"
 
           manage-collection:
             parameters:
@@ -278,7 +272,5 @@ application:
           destroy:
             steps: []
   bindings:
-    - [solr, wfService]
-    - [solr, secureStore]
     - [solr, tomcat]
     - [solr, zookeeper]
