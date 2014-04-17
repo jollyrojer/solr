@@ -37,7 +37,7 @@ application:
     tomcat:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "tomcat-bazar"
+        __locator.application-id: "Application Server"
       interfaces:
         input:
           app-port: configuration(string)
@@ -54,7 +54,7 @@ application:
     zookeeper:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "533bfa82e4b0a12dbc347cbe"
+        __locator.application-id: "component-zookeeper"
       interfaces:
         input:
           exhibitor-port: configuration(string)
