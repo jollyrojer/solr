@@ -62,7 +62,6 @@ application:
         output:
           zoo-nodes: publish-signal(list<string>)
           zoo-ui: publish-signal(list<string>)
-          zoo-cli-port: publish-signal(string)
 
     solr:
       type: workflow.Instance
