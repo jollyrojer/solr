@@ -37,7 +37,7 @@ application:
     tomcat:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "533bf86ce4b0a12dbc347cb1"
+        __locator.application-id: "tomcat-bazar"
       interfaces:
         input:
           app-port: configuration(string)
@@ -45,7 +45,7 @@ application:
         management:
           reconfigure: receive-command(string java-opts)
           deploy-libs: receive-command(list<string> lib-uri)
-          deploy-war: receive-command(string uri, string appname, bool create-context, object context-attrs, object context-nodes)
+          deploy-war: receive-command(string uri, string path, object context-attrs, object context-nodes)
           manage-service: receive-command(string service-action)
         output:
           app-hosts: publish-signal(list<string>)
@@ -83,7 +83,7 @@ application:
           manage-service: send-command(string service-action)
           reconfigure: send-command(string java-opts)
           deploy-libs: send-command(list<string> lib-uri)
-          deploy-war: send-command(string uri, string appname, bool create-context, object context-attrs, object context-nodes)          
+          deploy-war: send-command(string uri, string path, object context-attrs, object context-nodes)          
         result:
           solr-url: publish-signal(list<string>)
           solr-node: publish-signal(list<string>)
@@ -192,9 +192,8 @@ application:
                     service: tomcat-actions
                     command: deploy-war
                     arguments:
-                      create-context: true
                       uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
-                      appname: "solr.war"
+                      path: "/solr"
                       context-attrs: {
                         "docBase": "{$.chefAttrs['*'][0]['solr']['war_uri']}",
                         "debug": "5",
