@@ -7,17 +7,12 @@ require "pathname"
 
 # Extract war file from solr archive
 solr_url = "#{node["solr"]["url"]}#{node["solr"]["version"]}/solr-#{node["solr"]["version"]}.tgz"
-remote_file "solr_src" do
-  path "/tmp/solr-#{node["solr"]["version"]}.tgz"
-  source solr_url
-  checksum node.solr.checksum.fetch(node.solr.version, nil)
-  action :create_if_missing
+broadleaf_solr_download node["solr"]["version"] do
+  solr_url solr-url 
+  solr_version  node["solr"]["version"]
+  solr_checksum node.solr.checksum.fetch(node.solr.version, nil)
+  action :download_extract
   retries 3
-end
-
-execute "extract solr_src" do
-  command "tar -xzvf /tmp/solr-#{node["solr"]["version"]}.tgz -C /tmp"
-  creates "/tmp/solr-#{node["solr"]["version"]}"
 end
 
 # Since solr 4.3.0 we need slf4j jar http://wiki.apache.org/solr/SolrLogging#Solr_4.3_and_above
