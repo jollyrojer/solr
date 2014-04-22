@@ -7,7 +7,7 @@ require "pathname"
 
 # Extract war file from solr archive
 solr_url = "#{node["solr"]["url"]}#{node["solr"]["version"]}/solr-#{node["solr"]["version"]}.tgz"
-broadleaf_solr_download node["solr"]["version"] do
+solr_download node["solr"]["version"] do
   solr_url solr-url 
   solr_version  node["solr"]["version"]
   solr_checksum node.solr.checksum.fetch(node.solr.version, nil)
