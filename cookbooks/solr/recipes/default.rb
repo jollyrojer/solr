@@ -8,9 +8,9 @@ require "pathname"
 # Extract war file from solr archive
 solr_url = "#{node["solr"]["url"]}#{node["solr"]["version"]}/solr-#{node["solr"]["version"]}.tgz"
 solr_download "#{node["solr"]["version"]}"  do
-  solr_url solr_url 
-  solr_version  node["solr"]["version"]
-  solr_checksum node.solr.checksum.fetch(node.solr.version, nil)
+  solr_url solr_url 2
+  solr_version  "#{node["solr"]["version"]}"
+  solr_checksum "#{node["solr"]["checksum"]fetch(node.solr.version, nil)}"
   action :download_extract
   retries 3
 end
