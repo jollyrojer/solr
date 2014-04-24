@@ -9,7 +9,7 @@ require "pathname"
 solr_url = "#{node["solr"]["url"]}#{node["solr"]["version"]}/solr-#{node["solr"]["version"]}.tgz"
 solr_download "#{node["solr"]["version"]}"  do
   url solr_url
-  ver "#{node["solr"]["version"]}"
+  ver node["solr"]["version"]
   checksum "#{node["solr"]["checksum"].fetch(node.solr.version, nil)}"
   action :download_extract
   retries 3
