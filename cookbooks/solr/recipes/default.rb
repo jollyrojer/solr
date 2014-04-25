@@ -7,13 +7,16 @@ require "pathname"
 
 # Extract war file from solr archive
 solr_url = "#{node["solr"]["url"]}#{node["solr"]["version"]}/solr-#{node["solr"]["version"]}.tgz"
-solr_download "#{node["solr"]["version"]}"  do
-  url solr_url
-  ver node["solr"]["version"]
-  checksum "#{node["solr"]["checksum"].fetch(node.solr.version, nil)}"
-  action :download_extract
-  retries 3
+version = "#{node["solr"]["version"]}"
+bash "get solr-src" do
+    cwd "/tmp"
+    code <<-EOH
+        curl #{solr_url} -o solr-#{version}.tgz
+        tar -zxvf /tmp/solr-#{version}.tgz -C /tmp
+      EOH
+    retries 3
 end
+
 
 # Since solr 4.3.0 we need slf4j jar http://wiki.apache.org/solr/SolrLogging#Solr_4.3_and_above
 # Extract required libs
@@ -24,7 +27,7 @@ ruby_block "get logging libs" do
     libs=(Dir.entries(folder).select {|f| !File.directory? f}).map {|f| "file://" + File.join(folder, f)}
     node.set["solr"]["lib_uri"] = libs
   end
- # subscribes :create, resources(:solr_download => "#{node["solr"]["version"]}")
+ subscribes :create, resources(:bash => "get solr-src")
 end
 
 #Copy sorl.war to webapps
