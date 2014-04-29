@@ -1,7 +1,7 @@
 #
 # Cookbook Name:: solr-component
 # Recipe:: default
-#
+
 
 require "pathname"
 
