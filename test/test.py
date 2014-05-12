@@ -61,7 +61,7 @@ class ComponentTestCase(BaseComponentTestCase):
         "launch": False
      }, {
         "name": "Zookeeper",
-        "url": "https://raw.githubusercontent.com/loky9000/component-zookeeper-dev/master/component-zookeeper-dev.yml"
+        "url": "https://raw.githubusercontent.com/loky9000/component-zookeeper-dev/master/component-zookeeper-dev.yml",
         "launch": False 
   }]
 
