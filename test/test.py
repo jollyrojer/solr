@@ -66,8 +66,7 @@ class ComponentTestCase(BaseComponentTestCase):
     
     @instance(byApplication=name)
     def test_solr_hosts(self, instance):
-        hosts = instance.returnValues['nodes.solr-hosts']
-        port = instance.returnValues['nodes.solr-port']
+        hosts = instance.returnValues['endpoints.solr-url']
         for host in hosts:
-           resp = requests.get("http://" + host + ":" port + "/solr/", verify=False)
-           assert resp.status_code == 200
+           resp = requests.get(host, verify=False)
+           assert resp.status_code == 302
