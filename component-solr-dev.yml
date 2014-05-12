@@ -54,7 +54,7 @@ application:
     zookeeper:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "component-zookeeper"
+        __locator.application-id: "Zookeeper"
       interfaces:
         input:
           exhibitor-port: configuration(string)

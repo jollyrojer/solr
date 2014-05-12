@@ -55,7 +55,15 @@ class ComponentTestCase(BaseComponentTestCase):
     apps = [{
         "name": name,
         "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
-   }]
+     }, {
+        "name": "Application Server",
+        "url": "https://raw.github.com/qubell-bazaar/component-tomcat-dev/master/component-tomcat-dev.yml",
+        "launch": False
+     }, {
+        "name": "Zookeeper",
+        "url": "https://raw.githubusercontent.com/loky9000/component-zookeeper-dev/master/component-zookeeper-dev.yml"
+        "launch": False 
+  }]
 
     @instance(byApplication=name)
     def test_zoo_ui(self, instance):
