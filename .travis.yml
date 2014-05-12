@@ -7,7 +7,7 @@ env:
   global:
   - ARTIFACTS_AWS_REGION=us-east-1
   - ARTIFACTS_S3_BUCKET=qubell-starter-kit-artifacts
-  - QUBELL_TENANT=https://express.qubell.com
+  - QUBELL_TENANT=https://staging.dev.qubell.com
   - PROVIDER_TYPE=aws-ec2
   - PROVIDER_REGION=us-east-1
   - secure: cV47TmRdzHJGGbObqAl7BLRuV43k0SGwGG5QSX1UhThqi56dnlgr9RyQ3EGnszyukP12kuJvDqY1ZE/sMTfDx149JPxRGQAuV9vm9n4eyZ9wQpQ8M59PDg07uah1BfSm/Xa1vsrHESyIZWve+dkOBedP8i27fpdjrXO9/te6HxU=
