@@ -5,7 +5,6 @@ cookbook 'java', git: "https://github.com/opscode-cookbooks/java.git", ref: "7b5
 cookbook 'cookbook-qubell-tomcat', git: "https://github.com/loky9000/cookbook-qubell-tomcat.git"
 cookbook 'cookbook-qubell-zookeeper', git: "https://github.com:loky9000/cookbook-qubell-zookeeper.git"
 cookbook 'cookbook-qubell-solr', git: "https://github.com:loky9000/cookbook-qubell-solr.git"
-cookbook 'cookbook-qubell-solr_test', path: "./test/cookbooks/solr_test"
 
 ##Added for zookeeper
 cookbook 'zookeeper', git:"https://github.com/SimpleFinance/chef-zookeeper.git", ref: "49b9d05e913b3ad9f6e4751d00faf22b4fafa520"
