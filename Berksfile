@@ -4,9 +4,10 @@ metadata
 
 cookbook 'file', git: "https://github.com/jenssegers/chef-filehelper.git", ref: "75d11082ed082a6ff371073fe41567e0d3ec8ac9"
 cookbook 'java', git: "https://github.com/opscode-cookbooks/java.git", ref: "7b559d6509c32cb250571250a2484dba2a9d5e49"
-cookbook 'tomcat-component', git: "https://github.com/jollyrojer/component-tomcat.git", rel: "cookbooks/tomcat-component"
-cookbook 'zookeeper-component', git: "https://github.com/jollyrojer/zookeeper.git", rel: "cookbooks/zookeeper-component"
-cookbook 'solr_test', path: "./test/cookbooks/solr_test"
+cookbook 'cookbook-qubell-tomcat', git: "https://github.com/loky9000/cookbook-qubell-tomcat.git"
+cookbook 'cookbook-qubell-zookeeper', git: "https://github.com:loky9000/cookbook-qubell-zookeeper.git"
+cookbook 'cookbook-qubell-solr', git: "https://github.com:loky9000/cookbook-qubell-solr.git"
+cookbook 'cookbook-qubell-solr_test', path: "./test/cookbooks/solr_test"
 
 ##Added for zookeeper
 cookbook 'zookeeper', git:"https://github.com/SimpleFinance/chef-zookeeper.git", ref: "49b9d05e913b3ad9f6e4751d00faf22b4fafa520"
