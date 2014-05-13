@@ -9,7 +9,7 @@ application:
     input.exhibitor-port: "8090"
     input.solr-quantity: "4"
     input.zookeeper-quantity: "3"
-    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-solr-dev-cookbooks-stable-ff6c177.tar.gz" 
+    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/loky9000/component-solr-dev-cookbooks-stable-ff6c177.tar.gz" 
     input.image: "us-east-1/ami-1ba18d72"
     input.identity: "ec2-user"
     input.instance-size: "m1.small"
