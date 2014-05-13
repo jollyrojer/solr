@@ -1,4 +1,5 @@
 import os
+import requests
 
 from test_runner import BaseComponentTestCase
 from qubell.api.private.testing import instance, environment, workflow, values
@@ -56,7 +57,7 @@ class ComponentTestCase(BaseComponentTestCase):
 
     @instance(byApplication=name)
     def test_zoo_ui(self, instance):
-        hosts = instance.returnValues['output.zoo-ui']
+        hosts = instance.returnValues['nodes.zoo-ui']
         for host in hosts:
            resp = requests.get(host, verify=False)
            assert resp.status_code == 200
