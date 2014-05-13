@@ -9,6 +9,10 @@ application:
     input.exhibitor-port: "8090"
     input.solr-quantity: "4"
     input.zookeeper-quantity: "3"
+    input.recipe-url: "https://raw.githubusercontent.com/loky9000/solr/master/solr-cookbooks.tar.gz"
+    input.image: "us-east-1/ami-967edcff"
+    input.identity: "ubuntu"
+    input.instance-size: "m1.small"
 
   interfaces:
     input:
@@ -21,6 +25,10 @@ application:
       #tomcat inputs
       app-port: "bind(tomcat#input.app-port, solr#input.solr-port)"
       solr-quantity: "bind(tomcat#input.quantity)"
+      recipe-url: "bind(solr#input.recipe-url)"
+      image: "bind(tomcat#input.image)"
+      identity: "bind(tomcat#input.identity, solr#input.identity)"
+      instance-size: "bind(tomcat#input.instance-size)"
       #zookeeper inputs
       exhibitor-port: "bind(zookeeper#input.exhibitor-port)"
       zookeeper-quantity: "bind(zookeeper#input.zookeeper-quantity)"
@@ -42,6 +50,9 @@ application:
         input:
           app-port: configuration(string)
           quantity: configuration(string)
+          image: configuration(string)
+          identity: configuration(string)
+          instance-size: configuration(string)
         management:
           reconfigure: receive-command(string java-opts)
           deploy-libs: receive-command(list<string> lib-uri)
@@ -67,12 +78,14 @@ application:
       type: workflow.Instance
       interfaces:
         input:
+          identity: configuration(string)
           solr-port: configuration(string)
           solr-version: configuration(string)
           solr-collections: configuration(list<string>)
           solr-loglevel: configuration(string)
           solr-zookeeper-loglevel: configuration(string)
           solr-shards-num: configuration(string)
+          recipe-url: configuration(string)
         app-nodes:
           app-hosts: consume-signal(list<string>)
           app-port: consume-signal(string)
@@ -93,6 +106,8 @@ application:
       configuration:
         configuration.triggers:
           input.solr-collections: manage-collection
+          
+        configuration.propagateStatus: [ manage-collection ]
         configuration.workflows:
           launch:
             parameters:
@@ -121,7 +136,7 @@ application:
                   parameters:
                     roleName: default
                     hardwareId: ""
-                    vmIdentity: ubuntu
+                    vmIdentity: "{$.identity}"
                     retryCount: 0
                     staticIps: "{$.props.app-nodes.app-hosts}"
               - reconfigure-tomcat:
@@ -142,7 +157,7 @@ application:
                     isSolo: true
                     roles: [ default ]
                     runList: [ "recipe[solr]" ]
-                    recipeUrl: "https://raw.githubusercontent.com/loky9000/solr/master/solr-cookbooks.tar.gz"
+                    recipeUrl: "{$.recipe-url}" 
                     jattrs:
                       solr:
                         port: "{$.solr-port}"
@@ -161,7 +176,7 @@ application:
                     isSolo: true
                     roles: [ default ]
                     runList: [ "recipe[solr::create_collection]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    recipeUrl: "{$.recipe-url}"
                     jattrs:
                       solr:
                         version: "{$.solr-version}"
@@ -238,7 +253,7 @@ application:
                     isSolo: true
                     roles: ["default"]
                     runList: ["recipe[solr::delete_collection]"]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    recipeUrl: "{$.recipe-url}"
               - create-collections:
                   action: "chefrun"
                   phase: create-collections
@@ -247,9 +262,10 @@ application:
                     isSolo: true
                     roles: [ default ]
                     runList: [ "recipe[solr::create_collection]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    recipeUrl: "{$.recipe-url}"
                     jattrs:
                       solr:
+                        version: "{$.solr-version}"
                         port: "{$.solr-port}"
                         hostcontext: "solr"
                         collection: "{$.solr-collections}"
