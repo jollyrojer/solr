@@ -10,8 +10,8 @@ application:
     input.solr-quantity: "4"
     input.zookeeper-quantity: "3"
     input.recipe-url: "https://raw.githubusercontent.com/loky9000/solr/master/solr-cookbooks.tar.gz"
-    input.image: "us-east-1/ami-967edcff"
-    input.identity: "ubuntu"
+    input.image: "us-east-1/ami-1ba18d72"
+    input.identity: "ec2-user"
     input.instance-size: "m1.small"
 
   interfaces:

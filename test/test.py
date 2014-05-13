@@ -16,17 +16,6 @@ from qubell.api.private.testing import instance, environment, workflow, values
             "value": "root"
         }]
     },
-    "AmazonEC2_CentOS_53": {
-        "policies": [{
-            "action": "provisionVms",
-            "parameter": "imageId",
-            "value": "us-east-1/ami-beda31d7"
-        }, {
-            "action": "provisionVms",
-            "parameter": "vmIdentity",
-            "value": "root"
-        }]
-    },
     "AmazonEC2_Ubuntu_1204": {
         "policies": [{
             "action": "provisionVms",
