@@ -1,6 +1,6 @@
 site :opscode
 
-cookbook 'file', git: "https://github.com/jenssegers/chef-filehelper.git", ref: "75d11082ed082a6ff371073fe41567e0d3ec8ac9"
+cookbook 'file', git: "https://github.com/jenssegers/chef-filehelper.git", ref: "050c555"
 cookbook 'java', git: "https://github.com/opscode-cookbooks/java.git", ref: "7b559d6509c32cb250571250a2484dba2a9d5e49"
 cookbook 'cookbook-qubell-tomcat', git: "https://github.com/loky9000/cookbook-qubell-tomcat.git"
 cookbook 'cookbook-qubell-zookeeper', git: "https://github.com/loky9000/cookbook-qubell-zookeeper.git"
