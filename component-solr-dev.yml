@@ -196,7 +196,7 @@ application:
                     service: tomcat-actions
                     command: deploy-libs
                     arguments:
-                      lib-uri: "{$.chefAttrs['*'][0]['solr']['lib_uri']}"
+                      lib-uri: "{$.chefAttrs['*'][0]['cookbook-qubell-solr']['lib_uri']}"
               - deploy-war:
                   action: serviceCall
                   phase: deploy-war
@@ -206,10 +206,10 @@ application:
                     service: tomcat-actions
                     command: deploy-war
                     arguments:
-                      uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
+                      uri: "file://{$.chefAttrs['*'][0]['cookbook-qubell-solr']['war_uri']}"
                       path: "/solr"
                       context-attrs: {
-                        "docBase": "{$.chefAttrs['*'][0]['solr']['war_uri']}",
+                        "docBase": "{$.chefAttrs['*'][0]['cookbook-qubell-solr']['war_uri']}",
                         "debug": "5",
                         "crossContext": "true",
                         "privileged": "true",
@@ -229,7 +229,7 @@ application:
               solr-url:
                 value: "http://{$.props.app-nodes.app-hosts}:{$.props.app-nodes.app-port}/solr"
               solr-zoo-nodes:
-                value: "{$.chefAttrs1['*'][0].['solr']['zookeeper']['nodes']}"
+                value: "{$.chefAttrs1['*'][0].['cookbook-qubell-solr']['zookeeper']['nodes']}"
 
           manage-collection:
             parameters:
