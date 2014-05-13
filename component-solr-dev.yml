@@ -159,7 +159,7 @@ application:
                     runList: [ "recipe[cookbook-qubell-solr]" ]
                     recipeUrl: "{$.recipe-url}" 
                     jattrs:
-                      solr:
+                      cookbook-qubell-solr:
                         port: "{$.solr-port}"
                         hostcontext: "solr"
                         version: "{$.solr-version}"
@@ -178,7 +178,7 @@ application:
                     runList: [ "recipe[cookbook-qubell-solr::create_collection]" ]
                     recipeUrl: "{$.recipe-url}"
                     jattrs:
-                      solr:
+                      cookbook-qubell-solr:
                         version: "{$.solr-version}"
                         port: "{$.solr-port}"
                         hostcontext: "solr"
@@ -264,7 +264,7 @@ application:
                     runList: [ "recipe[cookbook-qubell-solr::create_collection]" ]
                     recipeUrl: "{$.recipe-url}"
                     jattrs:
-                      solr:
+                      cookbook-qubell-solr:
                         version: "{$.solr-version}"
                         port: "{$.solr-port}"
                         hostcontext: "solr"
