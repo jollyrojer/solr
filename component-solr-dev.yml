@@ -9,7 +9,7 @@ application:
     input.exhibitor-port: "8090"
     input.solr-quantity: "4"
     input.zookeeper-quantity: "3"
-    input.recipe-url: "https://raw.githubusercontent.com/loky9000/solr/master/solr-cookbooks.tar.gz"
+    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-solr-dev-cookbooks-stable-ff6c177.tar.gz" 
     input.image: "us-east-1/ami-1ba18d72"
     input.identity: "ec2-user"
     input.instance-size: "m1.small"
@@ -156,7 +156,7 @@ application:
                   parameters:
                     isSolo: true
                     roles: [ default ]
-                    runList: [ "recipe[solr]" ]
+                    runList: [ "recipe[cookbook-qubell-solr]" ]
                     recipeUrl: "{$.recipe-url}" 
                     jattrs:
                       solr:
@@ -175,7 +175,7 @@ application:
                   parameters:
                     isSolo: true
                     roles: [ default ]
-                    runList: [ "recipe[solr::create_collection]" ]
+                    runList: [ "recipe[cookbook-qubell-solr::create_collection]" ]
                     recipeUrl: "{$.recipe-url}"
                     jattrs:
                       solr:
@@ -252,7 +252,7 @@ application:
                   parameters:
                     isSolo: true
                     roles: ["default"]
-                    runList: ["recipe[solr::delete_collection]"]
+                    runList: ["recipe[cookbook-qubell-solr::delete_collection]"]
                     recipeUrl: "{$.recipe-url}"
               - create-collections:
                   action: "chefrun"
@@ -261,7 +261,7 @@ application:
                   parameters:
                     isSolo: true
                     roles: [ default ]
-                    runList: [ "recipe[solr::create_collection]" ]
+                    runList: [ "recipe[cookbook-qubell-solr::create_collection]" ]
                     recipeUrl: "{$.recipe-url}"
                     jattrs:
                       solr:
