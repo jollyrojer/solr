@@ -67,4 +67,4 @@ class ComponentTestCase(BaseComponentTestCase):
         hosts = instance.returnValues['endpoints.solr-url']
         for host in hosts:
            resp = requests.get(host, verify=False)
-           assert resp.status_code == 302
+           assert resp.status_code == 200 
