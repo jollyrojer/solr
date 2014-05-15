@@ -1,6 +1,6 @@
 application:
   configuration:
-    input.solr-version: "4.4.0"
+    input.solr-version: "4.6.0"
     input.solr-collections: ["testone"]
     input.solr-shards-num: "2"
     input.solr-loglevel: "FINE"
