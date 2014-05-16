@@ -2,14 +2,14 @@ Description
 ===========
 Install and configure Solr with additional Zookeeper support
 
-[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://staging.dev.qubell.com/applications/upload?metadataUrl=https://github.com/loky9000/component-solr-dev/raw/master/meta.yml)
+[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://staging.dev.qubell.com/applications/upload?metadataUrl=https://github.com/qubell-bazaar/component-solr-dev/raw/master/meta.yml)
 
 Attributes
 ----------
 
 Configurations
 --------------
-[![Build Status](https://travis-ci.org/loky9000/component-solr-dev.png?branch=master)](https://travis-ci.org/loky9000/component-solr-dev)
+[![Build Status](https://travis-ci.org/qubell-bazaar/component-solr-dev.png?branch=master)](https://travis-ci.org/qubell-bazaar/component-solr-dev)
 
  - Solr 4.x (latest), Amazon Linux (us-east-1/ami-1ba18d72), AWS EC2 m1.small, ec2-user
  - Solr 4.x (latest), CentOS 6.4 (us-east-1/ami-eb6b0182), AWS EC2 m1.small, root
@@ -28,14 +28,14 @@ Pre-requisites
 
 Implementation notes
 --------------------
- - Installation is based on Chef recipes from http://community.opscode.com/cookbooks/mysql
+ - Installation is based on Chef recipes from ""
 
 
 Usage
 -----
-If you want enable Zookeeper support then `node['solr']['zookeeper']['host']` should be set to zookeeper hosts IP.
+If you want enable Zookeeper support then `node['cookbook-qubell-solr']['zookeeper']['host']` should be set to zookeeper hosts IP.
 
-- `node['solr']['collection']` must be represented as array ["collection1","collection2"] in this case listed collections will be created.
-- `node['solr']['collection']` represented as array ["uri://path"] will download **zip** or **tar.gz** and unpack previosly prepaired collection
+- `node['cookbook-qubell-solr']['collection']` must be represented as array ["collection1","collection2"] in this case listed collections will be created.
+- `node['cookbook-qubell-solr']['collection']` represented as array ["uri://path"] will download **zip** or **tar.gz** and unpack previosly prepaired collection
 
 **Please note:** archived collection must contain only collection folders *(collection1, collection2)* and *solr.xml* collections configuration file 
