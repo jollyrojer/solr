@@ -9,6 +9,10 @@ application:
     input.exhibitor-port: "8090"
     input.solr-quantity: "4"
     input.zookeeper-quantity: "3"
+    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-solr-dev-cookbooks-stable-0c09806.tar.gz" 
+    input.image: "us-east-1/ami-1ba18d72"
+    input.identity: "ec2-user"
+    input.instance-size: "m1.small"
 
   interfaces:
     input:
@@ -21,6 +25,10 @@ application:
       #tomcat inputs
       app-port: "bind(tomcat#input.app-port, solr#input.solr-port)"
       solr-quantity: "bind(tomcat#input.quantity)"
+      recipe-url: "bind(solr#input.recipe-url)"
+      image: "bind(tomcat#input.image)"
+      identity: "bind(tomcat#input.identity, solr#input.identity)"
+      instance-size: "bind(tomcat#input.instance-size)"
       #zookeeper inputs
       exhibitor-port: "bind(zookeeper#input.exhibitor-port)"
       zookeeper-quantity: "bind(zookeeper#input.zookeeper-quantity)"
@@ -28,37 +36,27 @@ application:
       solr-node: "bind(solr#result.solr-node)"
       solr-url: "bind(solr#result.solr-url)"
     nodes:
-      app-hosts: "bind(tomcat#output.app-hosts)"
-      app-port: "bind(tomcat#output.app-port)"
-      zoo-nodes: "bind(zookeeper#output.zoo-nodes)"
+      solr-hosts: "bind(tomcat#output.app-hosts)"
+      solr-port: "bind(tomcat#output.app-port)"
+      solr-zoo-nodes: "bind(solr#result.solr-zoo-nodes)"
       zoo-ui: "bind(zookeeper#output.zoo-ui)"
 
   components:
-    wfService:
-      type: reference.Service
-      interfaces:
-        executor:
-          execute-workflow: receive-command(object request => object status => object status)
-          execute-command: send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
-
-    secureStore:
-      type: reference.Service
-      interfaces:
-        keypair-store:
-          get-keypair: receive-command(string id => object privateKey)
-
     tomcat:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "tomcat"
+        __locator.application-id: "Application Server"
       interfaces:
         input:
           app-port: configuration(string)
           quantity: configuration(string)
+          image: configuration(string)
+          identity: configuration(string)
+          instance-size: configuration(string)
         management:
           reconfigure: receive-command(string java-opts)
           deploy-libs: receive-command(list<string> lib-uri)
-          deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
+          deploy-war: receive-command(string uri, string path, object context-attrs, object context-nodes)
           manage-service: receive-command(string service-action)
         output:
           app-hosts: publish-signal(list<string>)
@@ -67,7 +65,7 @@ application:
     zookeeper:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "zoo-cloud"
+        __locator.application-id: "Zookeeper"
       interfaces:
         input:
           exhibitor-port: configuration(string)
@@ -80,12 +78,14 @@ application:
       type: workflow.Instance
       interfaces:
         input:
+          identity: configuration(string)
           solr-port: configuration(string)
           solr-version: configuration(string)
           solr-collections: configuration(list<string>)
           solr-loglevel: configuration(string)
           solr-zookeeper-loglevel: configuration(string)
           solr-shards-num: configuration(string)
+          recipe-url: configuration(string)
         app-nodes:
           app-hosts: consume-signal(list<string>)
           app-port: consume-signal(string)
@@ -95,18 +95,19 @@ application:
           manage-service: send-command(string service-action)
           reconfigure: send-command(string java-opts)
           deploy-libs: send-command(list<string> lib-uri)
-          deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
-        keypair-store:
-          get-keypair: send-command(string id => object privateKey)
+          deploy-war: send-command(string uri, string path, object context-attrs, object context-nodes)          
         result:
           solr-url: publish-signal(list<string>)
           solr-node: publish-signal(list<string>)
+          solr-zoo-nodes: publish-signal(string)
 
-      required: [keypair-store, app-nodes, zoo]
+      required: [app-nodes, zoo, tomcat-actions]
 
       configuration:
         configuration.triggers:
           input.solr-collections: manage-collection
+          
+        configuration.propagateStatus: [ manage-collection ]
         configuration.workflows:
           launch:
             parameters:
@@ -135,7 +136,7 @@ application:
                   parameters:
                     roleName: default
                     hardwareId: ""
-                    vmIdentity: ubuntu
+                    vmIdentity: "{$.identity}"
                     retryCount: 0
                     staticIps: "{$.props.app-nodes.app-hosts}"
               - reconfigure-tomcat:
@@ -155,10 +156,10 @@ application:
                   parameters:
                     isSolo: true
                     roles: [ default ]
-                    runList: [ "recipe[solr]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    runList: [ "recipe[cookbook-qubell-solr]" ]
+                    recipeUrl: "{$.recipe-url}" 
                     jattrs:
-                      solr:
+                      cookbook-qubell-solr:
                         port: "{$.solr-port}"
                         hostcontext: "solr"
                         version: "{$.solr-version}"
@@ -174,15 +175,18 @@ application:
                   parameters:
                     isSolo: true
                     roles: [ default ]
-                    runList: [ "recipe[solr::create_collection]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    runList: [ "recipe[cookbook-qubell-solr::create_collection]" ]
+                    recipeUrl: "{$.recipe-url}"
                     jattrs:
-                      solr:
+                      cookbook-qubell-solr:
+                        version: "{$.solr-version}"
                         port: "{$.solr-port}"
                         hostcontext: "solr"
                         collection: "{$.solr-collections}"
                         zookeeper:
                           hosts: "{$.props.zoo.zoo-nodes}"
+                  output:
+                     chefAttrs1: chefState
               - deploy-libs:
                   action: serviceCall
                   phase: deploy-libs
@@ -192,7 +196,7 @@ application:
                     service: tomcat-actions
                     command: deploy-libs
                     arguments:
-                      lib-uri: "{$.chefAttrs['*'][0]['solr']['lib_uri']}"
+                      lib-uri: "{$.chefAttrs['*'][0]['cookbook-qubell-solr']['lib_uri']}"
               - deploy-war:
                   action: serviceCall
                   phase: deploy-war
@@ -202,9 +206,10 @@ application:
                     service: tomcat-actions
                     command: deploy-war
                     arguments:
-                      war-uri: "file://{$.chefAttrs['*'][0]['solr']['war_uri']}"
+                      uri: "file://{$.chefAttrs['*'][0]['cookbook-qubell-solr']['war_uri']}"
+                      path: "/solr"
                       context-attrs: {
-                        "docBase": "{$.chefAttrs['*'][0]['solr']['war_uri']}",
+                        "docBase": "{$.chefAttrs['*'][0]['cookbook-qubell-solr']['war_uri']}",
                         "debug": "5",
                         "crossContext": "true",
                         "privileged": "true",
@@ -223,6 +228,8 @@ application:
                 value: "{$.props.app-nodes.app-hosts}"
               solr-url:
                 value: "http://{$.props.app-nodes.app-hosts}:{$.props.app-nodes.app-port}/solr"
+              solr-zoo-nodes:
+                value: "{$.chefAttrs1['*'][0].['cookbook-qubell-solr']['zookeeper']['nodes']}"
 
           manage-collection:
             parameters:
@@ -245,8 +252,8 @@ application:
                   parameters:
                     isSolo: true
                     roles: ["default"]
-                    runList: ["recipe[solr::delete_collection]"]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    runList: ["recipe[cookbook-qubell-solr::delete_collection]"]
+                    recipeUrl: "{$.recipe-url}"
               - create-collections:
                   action: "chefrun"
                   phase: create-collections
@@ -254,10 +261,11 @@ application:
                   parameters:
                     isSolo: true
                     roles: [ default ]
-                    runList: [ "recipe[solr::create_collection]" ]
-                    recipeUrl: "https://dl.dropboxusercontent.com/u/250836/solr-cloud.tar.gz"
+                    runList: [ "recipe[cookbook-qubell-solr::create_collection]" ]
+                    recipeUrl: "{$.recipe-url}"
                     jattrs:
-                      solr:
+                      cookbook-qubell-solr:
+                        version: "{$.solr-version}"
                         port: "{$.solr-port}"
                         hostcontext: "solr"
                         collection: "{$.solr-collections}"
@@ -278,7 +286,5 @@ application:
           destroy:
             steps: []
   bindings:
-    - [solr, wfService]
-    - [solr, secureStore]
     - [solr, tomcat]
     - [solr, zookeeper]
