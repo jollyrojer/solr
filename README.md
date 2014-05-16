@@ -22,7 +22,6 @@ Pre-requisites
  - Configured Cloud Account a in chosen environment
  - Either installed Chef on target compute OR launch under root
  - Internet access from target compute:
-  - MySQL distribution: ** (CentOS), ** (Ubuntu)
   - S3 bucket with Chef recipes: ** (TBD)
   - If Chef is not installed: ** (TBD)
 
